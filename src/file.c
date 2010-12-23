@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
@@ -41,7 +42,7 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha)
 		f->size  = s.st_size;
 
 		/*compute the sha if necessary*/
-		if(true == computeSha)
+		if(S_ISREG(s.st_mode) && (true == computeSha))
 		{
 			returnValue = sha_file(filename, f->sha);
 		}
@@ -56,10 +57,11 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha)
 int File_Serialize(File f, unsigned char * const buffer, const int bufferSize)
 {
 	int pos = 0;
+	int Slen = strlen((char*)f->sha)+1;
 	int mode, size, mtime, lenSha, lenFilename, totalLen;
 
 	/*Total Length = sizeof(f->mode) + sizeof(f->size) + sizeof(f->mtime) + lenOfFilename + lenOfSha + SHA_HASH_LENGTH + strlen(Filename)*/
-	totalLen = INT_SIZE * 5 + String_strlen(f->filename) + SHA_HASH_LENGTH;
+	totalLen = INT_SIZE * 5 + String_strlen(f->filename) + Slen;
 	if(totalLen > bufferSize)
 	{
 		return 0;
@@ -67,7 +69,7 @@ int File_Serialize(File f, unsigned char * const buffer, const int bufferSize)
 	mode = htonl(f->mode);
 	size = htonl(f->size);
 	mtime = htonl(f->mtime);
-	lenSha = htonl(SHA_HASH_LENGTH);
+	lenSha = htonl(Slen);
 	lenFilename = htonl(String_strlen(f->filename));
 
 	memcpy(buffer + pos, &mode, INT_SIZE); 			pos += INT_SIZE;
@@ -75,12 +77,12 @@ int File_Serialize(File f, unsigned char * const buffer, const int bufferSize)
 	memcpy(buffer + pos, &mtime, INT_SIZE); 		pos += INT_SIZE;
 	memcpy(buffer + pos, &lenSha, INT_SIZE); 		pos += INT_SIZE;
 	memcpy(buffer + pos, &lenFilename, INT_SIZE); 	pos += INT_SIZE;
-	memcpy(buffer + pos, f->sha, SHA_HASH_LENGTH); 	pos += SHA_HASH_LENGTH;
+	memcpy(buffer + pos, f->sha, Slen); 			pos += Slen;
 
 	memcpy(buffer + pos, s_getstr(f->filename), String_strlen(f->filename));
 	pos += String_strlen(f->filename);
 
-	return pos;
+	return totalLen;
 }
 bool File_DeSerialize(File f, unsigned const char *data, const int dataSize)
 {
@@ -106,14 +108,14 @@ bool File_DeSerialize(File f, unsigned const char *data, const int dataSize)
 	f->size = ntohl(f->size);
 	f->mtime = ntohl(f->mtime);
 	lenFilename = ntohl(lenFilename);
-	if(lenSha != SHA_HASH_LENGTH)
+	if(lenSha > SHA_HASH_LENGTH)
 	{
 		LOG_ERROR("SHA length %d is not correct value, it should have been %d", lenSha, SHA_HASH_LENGTH);
 		return false;
 	}
-	else if(dataSize != (INT_SIZE * 5 + lenSha + lenFilename))
+	if(dataSize != (INT_SIZE * 5 + lenSha + lenFilename))
 	{
-		LOG_ERROR("invalid dataSize %d, dataSize should have been %d", dataSize, INT_SIZE * 5 + lenSha + lenFilename);
+		LOG_ERROR("invalid dataSize %d, dataSize should have been %d, %d", dataSize, INT_SIZE * 5 + lenSha + lenFilename, lenSha);
 		return false;
 	}
 

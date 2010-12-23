@@ -132,7 +132,7 @@ uint32_t FileList_InsertFile(FileList f, const char *filename, const bool comput
 	return pos;
 }
 
-bool FileList_MergeList(FileList masterList, const FileList newList)
+bool FileList_MergeList(FileList masterList, const FileList newList, const bool computeSha)
 {
 	uint32_t pos, i, j;
 
@@ -156,7 +156,7 @@ bool FileList_MergeList(FileList masterList, const FileList newList)
 		{
 			File_Swap(masterList->list[i], masterList->list[i-1]);
 		}
-		File_SetFileData(masterList->list[pos], s_getstr(newList->list[j]->filename), false);
+		File_SetFileData(masterList->list[pos], s_getstr(newList->list[j]->filename), computeSha);
 		masterList->length++;
 		pos++;
 	}	
@@ -187,7 +187,7 @@ static bool excluseFile(const char *filename)
 	}
 	return false;
 }
-static bool GetDirectoryConents(FileList f, const char *folder)
+static bool GetDirectoryConents(FileList f, const char *folder, const bool computeSha)
 {
 	DIR *dir;
 	struct dirent *d;
@@ -215,7 +215,7 @@ static bool GetDirectoryConents(FileList f, const char *folder)
 		if(false == excluseFile(d->d_name))
 		{
 			String_format(filename, "%s%s", s_getstr(path), d->d_name);
-			FileList_InsertFile(f, s_getstr(filename), false);
+			FileList_InsertFile(f, s_getstr(filename), computeSha);
 		}
 	}
 	String_Delete(path);
@@ -224,7 +224,7 @@ static bool GetDirectoryConents(FileList f, const char *folder)
 	return true;
 }
 
-bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool recursive)
+bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool recursive, const bool computeSha)
 {	
 	if(true == recursive)
 	{
@@ -244,10 +244,10 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 
 		while(0 != top)
 		{
-			if(false == GetDirectoryConents(l, s_getstr(stack[--top])))/*pop operation*/
+			if(false == GetDirectoryConents(l, s_getstr(stack[--top]), false))/*pop operation*/
 				continue;
 
-			FileList_MergeList(f, l);
+			FileList_MergeList(f, l, computeSha);
 			/*Push all the folders into the stack*/
 			for(i = 0; i < l->length; i++)
 			{
@@ -274,7 +274,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 	}
 	else
 	{
-		GetDirectoryConents(f, folder);
+		GetDirectoryConents(f, folder, computeSha);
 	}
 	return true;
 }
@@ -345,6 +345,7 @@ bool FileList_Serialize(FileList f, const char *filename)
 	{
 		return false;
 	}
+	unlink(filename);
 	fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IROTH | S_IROTH);
 	if(fd < 0)
 	{
@@ -376,7 +377,7 @@ void FileList_PrintList(const FileList f)
 	int i = 0;
 	for(i = 0; i < f->length; i++)
 	{
-		LOG_INFO("%2.2d: %6.6o %s", i+1, f->list[i]->mode, s_getstr(f->list[i]->filename));
+		LOG_INFO("%2.2d: %40s %s", i+1, f->list[i]->sha, s_getstr(f->list[i]->filename));
 	}
 	return ;
 }

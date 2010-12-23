@@ -3,14 +3,19 @@
 
 int main(int argc, char *argv[])
 {
-	FileList f, f1, f2;
+	FileList f;
 	f = FileList_Create();
 
-	//FileList_GetDirectoryConents(f, "./", true);
-	FileList_DeSerialize(f, "1");
+#if 0
+	FileList_GetDirectoryConents(f, "./", true, true);
+	FileList_Serialize(f, "../index");
+#else
+	FileList_DeSerialize(f, "../index");
+#endif
 
 	FileList_PrintList(f);
 
 	FileList_Delete(f);
+	PrintAllocatedBytes();
 	return 0;
 }

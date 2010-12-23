@@ -33,8 +33,8 @@ void FileList_Delete(FileList f);
 
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
-bool FileList_MergeList(FileList masterList, const FileList newList);
-bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive);
+bool FileList_MergeList(FileList masterList, const FileList newList, const bool computeSha);
+bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive, const bool computeSha);
 void FileList_PrintList(const FileList f);
 bool FileList_Serialize(FileList f, const char *filename);
 bool FileList_DeSerialize(FileList f, const char *filename);
