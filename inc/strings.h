@@ -24,4 +24,5 @@ int String_strcmp(const String s, const char *s1);
 int String_compare(const String s, const String s1);
 const char* s_getstr(const String s);
 int String_format(String s, const char *format, ...);
+void String_NormalizeFolderName(String s);
 #endif

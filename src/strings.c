@@ -5,8 +5,7 @@
 #include <stdarg.h>
 #include "strings.h"
 
-
-#define MIN_STRING_SIZE		10
+#define MIN_STRING_SIZE		20
 
 struct _string
 {
@@ -17,9 +16,10 @@ struct _string
 void String_SetSize(String s, const uint32_t size)
 {
 	if(s->strSize < size)
-	{
-		s->strSize = size;
+	{		
 		s->str = (char*)XREALLOC(s->str, size);
+		memset(s->str+s->strSize, 0, size - s->strSize);
+		s->strSize = size;
 	}
 	
 	return;
@@ -32,6 +32,7 @@ String String_Create(void)
 	s->strLen = 0;
 	s->strSize = MIN_STRING_SIZE;
 	s->str = (char*)XMALLOC(s->strSize);
+	memset(s->str, 0, s->strSize);
 	return s;
 }
 
@@ -79,7 +80,6 @@ void String_strcpy(String s, const char *str)
 	{
 		int len = strlen(str)+1;
 
-		LOG_INFO("%s", str);
 		if(len >= s->strSize)
 		{
 			String_SetSize(s, MIN_STRING_SIZE + len);
@@ -133,11 +133,33 @@ int String_format(String s, const char *format, ...)
 	do
 	{		
 		va_start(v, format);
-		String_SetSize(s, len);
+		String_SetSize(s, len+MIN_STRING_SIZE);
 		len = vsnprintf(s->str, s->strSize, format, v);	
 		va_end(v);		
 	}
-	while(len > s->strSize);
+	while(len >= s->strSize);
 	s->strLen = len+1;
 	return len;
+}
+
+/*Converts the foldername to the following format
+ * ./<foldername>/ 
+ * */
+void String_NormalizeFolderName(String s)
+{
+	int n = s->strLen-1;
+
+	while((n > 0) && (s->str[--n] == '/'));
+	s->str[n+1] = '/';
+	s->str[n+2] = 0;
+	s->strLen = n+2;
+
+	if(strncmp(s->str, "./", 2) != 0)
+	{
+		memmove(s->str+2, s->str, s->strLen);
+		s->str[0] = '.';
+		s->str[1] = '/';
+		s->strLen = s->strLen+2;
+	}
+	return;
 }

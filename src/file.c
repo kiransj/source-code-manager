@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include "filelist.h"
-#include "strings.h"
-#include "sha.h"
 
 #define INT_SIZE	sizeof(uint32_t)
 

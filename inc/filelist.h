@@ -32,8 +32,8 @@ FileList FileList_Create(void);
 void FileList_Delete(FileList f);
 
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
-bool FileList_InsertFileToSortedList(FileList f, const char* filename, const bool computeSha);
-bool FileList_MergeSortedList(FileList masterList, const FileList newList);
-bool FileList_GetDirectoryConents(FileList f, const char *path);
+bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
+bool FileList_MergeList(FileList masterList, const FileList newList);
+bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive);
 void FileList_PrintList(const FileList f);
 #endif

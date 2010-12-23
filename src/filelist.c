@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <dirent.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "filelist.h"
@@ -99,7 +100,7 @@ File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 /*This function returns true if the filename already exist, else return's false.
 * pos variable points to the position in the list if the elements exist
 * if it doesn't exist it point to the pos where it should be inserted*/
-uint32_t FileList_InsertFileToSortedList(FileList f, const char *filename, const bool computeSha)
+uint32_t FileList_InsertFile(FileList f, const char *filename, const bool computeSha)
 {
 	uint32_t pos;
 
@@ -127,7 +128,7 @@ uint32_t FileList_InsertFileToSortedList(FileList f, const char *filename, const
 	return pos;
 }
 
-bool FileList_MergeSortedList(FileList masterList, const FileList newList)
+bool FileList_MergeList(FileList masterList, const FileList newList)
 {
 	uint32_t pos, i, j;
 
@@ -158,31 +159,115 @@ bool FileList_MergeSortedList(FileList masterList, const FileList newList)
 	return true;
 }
 
-bool FileList_GetDirectoryConents(FileList f, const char *path)
+static bool excluseFile(const char *filename)
+{
+	int i;
+	char *folder[] = { ".git", ".scm", ".", ".."}; 
+	char *files[] = { ".o", ".out", ".swp", "tags"};
+	const int numOfFiles = sizeof(files)/sizeof(files[0]);
+	const int numOfFolders = sizeof(folder)/sizeof(folder[0]);
+	
+	if(isItFile(filename))
+	{
+		for(i = 0;i < numOfFiles; i++)
+		{
+			if(NULL != strstr(filename, files[i]))
+				return true;
+		}
+	}
+	else if(isItFolder(filename))
+	{		
+		for(i = 0;i < numOfFolders; i++)
+		{
+			if(0 == strcmp(filename, folder[i]))
+			{
+				return true;
+			}
+		}	
+	}
+	return false;
+}
+static bool GetDirectoryConents(FileList f, const char *folder)
 {
 	DIR *dir;
 	struct dirent *d;
-	struct stat s;
-	String filename;	
+	String filename, path;
 
 	/*Set the listlength to zero..*/
 	f->length = 0;
 	
-	if((0 != stat(path, &s) || !S_ISDIR(s.st_mode)))
+	if(false == isItFolder(folder))
 	{
-		LOG_ERROR("FileList_GetDirectoryConents: '%s' is not a directory/doesn't exist", path);
+		LOG_ERROR("FileList_GetDirectoryConents: '%s' is not a directory/doesn't exist", folder);
 		return false;
 	}
+	path = String_Create();
 	filename = String_Create();
 
-	dir = opendir(path);
+	String_strcpy(path, folder);
+
+	String_NormalizeFolderName(path);
+
+	dir = opendir(folder);
 	while(NULL != (d = readdir(dir)))
 	{
-		String_format(filename, "%s/%s", path, d->d_name);
-		FileList_InsertFileToSortedList(f, s_getstr(filename), false);
+		if(false == excluseFile(d->d_name))
+		{
+			String_format(filename, "%s%s", s_getstr(path), d->d_name);
+			FileList_InsertFile(f, s_getstr(filename), false);
+		}
 	}
+	String_Delete(path);
 	closedir(dir);
 	String_Delete(filename);
+	return true;
+}
+
+bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool recursive)
+{	
+	if(true == recursive)
+	{
+		FileList l;
+		int size = 20, top = 0, i;
+		String *stack;
+
+		f->length = 0; /*clean the current list*/
+		stack = (String*)XMALLOC(sizeof(String*) * size);
+		for(i = 0; i < size; i++)
+			stack[i] = String_Create();
+
+		String_strcpy(stack[top++], folder); /*PUSH operation*/
+
+		l = FileList_Create();	
+		while(0 != top)
+		{	
+			GetDirectoryConents(l, s_getstr(stack[--top]));/*pop operation*/		
+			FileList_MergeList(f, l);
+			for(i = 0; i < l->length; i++)
+			{
+				if(isItFolder(s_getstr(l->list[i]->filename)))
+				{				
+					String_clone(stack[top++], l->list[i]->filename); /*PUSH operation*/
+					if(top == size)
+					{
+						stack = (String*)XREALLOC(stack, sizeof(String*) * (size + 50));
+						for(i = size; i < (size+50); i++)
+							stack[i] = String_Create();
+						size += 50;
+					}					
+				}
+			}
+		}	
+
+		FileList_Delete(l);
+		for(i = 0; i < size; i++)
+			String_Delete(stack[i]);
+		XFREE(stack);
+	}
+	else
+	{
+		GetDirectoryConents(f, folder);
+	}
 	return true;
 }
 
