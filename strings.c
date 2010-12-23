@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <malloc.h>
+#include <string.h>
+#include "strings.h"
+
+
+#define MIN_STRING_SIZE		16
+
+struct _string
+{
+	char *str;
+	uint16_t strLen, strSize;
+};
+
+void String_SetSize(String s, const uint16_t size)
+{
+	if(s->strSize < size)
+	{
+		s->strSize = size;
+		s->str = (char*)XREALLOC(s->str, size);
+	}
+	
+	return;
+}
+
+String String_Create(void)
+{
+	String s;
+	s = (String)XMALLOC(sizeof(struct _string));	
+	s->strLen = 0;
+	s->strSize = MIN_STRING_SIZE;
+	s->str = (char*)XMALLOC(s->strSize);
+	return s;
+}
+
+void String_Delete(String s)
+{
+	XFREE(s->str);
+	XFREE(s);
+	return;
+}
+
+void String_clone(String s, const String s1)
+{
+	if(s1->strLen >= s->strSize)
+	{
+		String_SetSize(s, MIN_STRING_SIZE + s1->strLen);
+	}
+	s->strLen = s1->strLen;
+	strncpy(s->str, s1->str, s1->strLen);
+	return;
+}
+
+void String_add(String s, const String s1)
+{
+	if((s1->strLen + s->strLen) >= s->strSize)
+	{
+		String_SetSize(s, MIN_STRING_SIZE + s1->strLen + s->strLen);
+	}
+	s->strLen = s1->strLen+s->strLen - 1;
+	strncat(s->str, s1->str, s1->strLen);
+	return;
+}
+
+int String_compare(const String s, const String s1)
+{
+	return strcmp(s->str, s1->str);
+}
+
+int String_strcmp(const String s, const char *s1)
+{
+	return strcmp(s->str, s1);
+}
+void String_strcpy(String s, const char *str)
+{
+	if(NULL != str)
+	{
+		int len = strlen(str)+1;
+
+		LOG_INFO("%s", str);
+		if(len >= s->strSize)
+		{
+			String_SetSize(s, MIN_STRING_SIZE + len);
+		}
+		s->strLen = len;
+		strncpy(s->str, str, len);
+	}
+	else
+	{
+		LOG_ERROR("String_strcpy: trying to copy NULL string");
+	}
+	return;
+}
+void String_strcat(String s, const char *str)
+{
+	if(NULL != str)
+	{
+		int len = strlen(str);
+		if((len+s->strLen) >= s->strSize)
+		{
+			String_SetSize(s, MIN_STRING_SIZE + len + s->strLen);
+		}
+		s->strLen += len;
+		strncat(s->str, str, len);
+	}
+	return;
+}
+
+const char* String_getstr(const String s)
+{
+	return (const char*)s->str;
+}
+
+int String_strlen(const String s)
+{
+	return (int)(s->strLen-1);
+}
+
+void String_DebugPrint(const String s)
+{
+	printf("\nLen : %d", s->strLen);
+	printf("\nSize : %d", s->strSize);
+	printf("\nstr : %s", s->str);
+	printf("\n");
+}
+
