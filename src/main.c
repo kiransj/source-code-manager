@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 	f1 = FileList_Create();
 	f2 = FileList_Create();
 
-	FileList_GetDirectoryConents(f, "./", false);
+	FileList_GetDirectoryConents(f, "./", true);
 
 
 	FileList_PrintList(f);

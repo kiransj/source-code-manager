@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include "strings.h"
 
-#define MIN_STRING_SIZE		20
+#define MIN_STRING_SIZE		16
 
 struct _string
 {

@@ -162,28 +162,24 @@ bool FileList_MergeList(FileList masterList, const FileList newList)
 static bool excluseFile(const char *filename)
 {
 	int i;
-	char *folder[] = { ".git", ".scm", ".", ".."}; 
+
 	char *files[] = { ".o", ".out", ".swp", "tags"};
+	char *folder[] = { ".git", ".scm", ".", "..", ".objs"}; 
+
 	const int numOfFiles = sizeof(files)/sizeof(files[0]);
 	const int numOfFolders = sizeof(folder)/sizeof(folder[0]);
 	
 	if(isItFile(filename))
 	{
 		for(i = 0;i < numOfFiles; i++)
-		{
 			if(NULL != strstr(filename, files[i]))
 				return true;
-		}
 	}
 	else if(isItFolder(filename))
 	{		
 		for(i = 0;i < numOfFolders; i++)
-		{
 			if(0 == strcmp(filename, folder[i]))
-			{
 				return true;
-			}
-		}	
 	}
 	return false;
 }
@@ -206,6 +202,7 @@ static bool GetDirectoryConents(FileList f, const char *folder)
 
 	String_strcpy(path, folder);
 
+	/*Convert folder name to ./<foldername>/ format*/
 	String_NormalizeFolderName(path);
 
 	dir = opendir(folder);
@@ -232,6 +229,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 		String *stack;
 
 		f->length = 0; /*clean the current list*/
+		/*Allocate memory for the stack, to implement recursive listing*/
 		stack = (String*)XMALLOC(sizeof(String*) * size);
 		for(i = 0; i < size; i++)
 			stack[i] = String_Create();
@@ -239,25 +237,31 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 		String_strcpy(stack[top++], folder); /*PUSH operation*/
 
 		l = FileList_Create();	
+
 		while(0 != top)
-		{	
-			GetDirectoryConents(l, s_getstr(stack[--top]));/*pop operation*/		
+		{
+			if(false == GetDirectoryConents(l, s_getstr(stack[--top])))/*pop operation*/
+				continue;
+
 			FileList_MergeList(f, l);
+			/*Push all the folders into the stack*/
 			for(i = 0; i < l->length; i++)
 			{
-				if(isItFolder(s_getstr(l->list[i]->filename)))
-				{				
-					String_clone(stack[top++], l->list[i]->filename); /*PUSH operation*/
-					if(top == size)
-					{
-						stack = (String*)XREALLOC(stack, sizeof(String*) * (size + 50));
-						for(i = size; i < (size+50); i++)
-							stack[i] = String_Create();
-						size += 50;
-					}					
-				}
-			}
-		}	
+				if(!S_ISDIR(l->list[i]->mode))
+					continue;
+
+				/*if it a folder then add it to the stack*/
+				String_clone(stack[top++], l->list[i]->filename); /*PUSH operation*/
+				/*Allocate some more memory if necessary*/
+				if(top == size)
+				{
+					stack = (String*)XREALLOC(stack, sizeof(String*) * (size + 50));
+					for(i = size; i < (size+50); i++)
+						stack[i] = String_Create();
+					size += 50;
+				}									
+			}			
+		}
 
 		FileList_Delete(l);
 		for(i = 0; i < size; i++)
