@@ -7,7 +7,6 @@ typedef enum
 	true = 1,
 }bool;
 
-#define MAX_BUFFER_SIZE	1024
 
 #define LOG_ERROR(format, ...) fprintf(stderr, format "\n", ## __VA_ARGS__)
 #define LOG_INFO(format, ...)  fprintf(stdout, format "\n", ## __VA_ARGS__)

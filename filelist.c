@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include "filelist.h"
 
-#define MIN_LIST_SIZE	50
+#define MIN_LIST_SIZE	10
 #define File_Swap(a, b) { File tmp = a; a = b; b = tmp;}
 
 struct _filelist
@@ -14,8 +14,8 @@ struct _filelist
 };
 
 
-static void FileList_SetListSize(FileList f, const uint32_t size);
-static bool FileList_GetPositionToInsert(const FileList f, const char* filename, uint32_t * const pos);
+static void SetListSize(FileList f, const uint32_t size);
+static bool getPositionToInsert(const FileList f, const char* filename, uint32_t * const pos);
 
 
 FileList FileList_Create(void)
@@ -46,7 +46,7 @@ void FileList_Delete(FileList f)
 	return;
 }
 
-static void FileList_SetListSize(FileList f, const uint32_t size)
+static void SetListSize(FileList f, const uint32_t size)
 {
 	if(f->listSize < size)
 	{
@@ -62,7 +62,7 @@ static void FileList_SetListSize(FileList f, const uint32_t size)
 	return;
 }
 
-static bool FileList_GetPositionToInsert(const FileList f, const char *filename, uint32_t * const pos)
+static bool getPositionToInsert(const FileList f, const char *filename, uint32_t * const pos)
 {
 	uint32_t mid, max, min;
 	min = 0;
@@ -104,7 +104,7 @@ uint32_t FileList_InsertFileToSortedList(FileList f, const char *filename, const
 	uint32_t pos;
 
 	/*if the file already exist then update it*/
-	if(true == FileList_GetPositionToInsert(f, filename, &pos))
+	if(true == getPositionToInsert(f, filename, &pos))
 	{
 		File_SetFileData(f->list[pos], filename, computeSha);
 	}
@@ -114,7 +114,7 @@ uint32_t FileList_InsertFileToSortedList(FileList f, const char *filename, const
 		/*increase the list size if necessary*/
 		if((f->length+1) == f->listSize)
 		{
-			FileList_SetListSize(f, f->listSize + MIN_LIST_SIZE);
+			SetListSize(f, f->listSize + MIN_LIST_SIZE);
 		}
 		/*Make space for the new element to moving some element down*/
 		for(i = f->length; i > pos; i--)
@@ -136,12 +136,12 @@ bool FileList_MergeSortedList(FileList masterList, const FileList newList)
 		return true;
 	}
 	/*if the file already exist then update it*/
-	FileList_GetPositionToInsert(masterList, String_getstr(newList->list[0]->filename), &pos);
+	getPositionToInsert(masterList, s_getstr(newList->list[0]->filename), &pos);
 
 	/*increase the list size if necessary*/
 	if((masterList->length+newList->length+10) >= masterList->listSize)
 	{
-		FileList_SetListSize(masterList, masterList->listSize + newList->length + 10);
+		SetListSize(masterList, masterList->listSize + newList->length + 10);
 	}
 
 	for(j = 0; j < newList->length; j++)
@@ -151,37 +151,38 @@ bool FileList_MergeSortedList(FileList masterList, const FileList newList)
 		{
 			File_Swap(masterList->list[i], masterList->list[i-1]);
 		}
-
-		memcpy(masterList->list[pos], newList->list[j], sizeof(FileData));
+		File_SetFileData(masterList->list[pos], s_getstr(newList->list[j]->filename), false);
 		masterList->length++;
 		pos++;
 	}	
 	return true;
 }
+
 bool FileList_GetDirectoryConents(FileList f, const char *path)
 {
 	DIR *dir;
 	struct dirent *d;
 	struct stat s;
-	char filename[MAX_BUFFER_SIZE];
+	String filename;	
 
 	/*Set the listlength to zero..*/
 	f->length = 0;
-
 	
 	if((0 != stat(path, &s) || !S_ISDIR(s.st_mode)))
 	{
 		LOG_ERROR("FileList_GetDirectoryConents: '%s' is not a directory/doesn't exist", path);
 		return false;
 	}
+	filename = String_Create();
 
 	dir = opendir(path);
 	while(NULL != (d = readdir(dir)))
 	{
-		snprintf(filename, MAX_BUFFER_SIZE, "%s/%s", path, d->d_name);
-		FileList_InsertFileToSortedList(f, filename, false);
+		String_format(filename, "%s/%s", path, d->d_name);
+		FileList_InsertFileToSortedList(f, s_getstr(filename), false);
 	}
 	closedir(dir);
+	String_Delete(filename);
 	return true;
 }
 
@@ -190,7 +191,7 @@ void FileList_PrintList(const FileList f)
 	int i = 0;
 	for(i = 0; i < f->length; i++)
 	{
-		LOG_INFO("%2.2d: %6.6o %s", i+1, f->list[i]->mode, String_getstr(f->list[i]->filename));
+		LOG_INFO("%2.2d: %6.6o %s", i+1, f->list[i]->mode, s_getstr(f->list[i]->filename));
 	}
 	return ;
 }

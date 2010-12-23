@@ -2,18 +2,19 @@
 #include <unistd.h>
 #include <malloc.h>
 #include <string.h>
+#include <stdarg.h>
 #include "strings.h"
 
 
-#define MIN_STRING_SIZE		16
+#define MIN_STRING_SIZE		10
 
 struct _string
 {
 	char *str;
-	uint16_t strLen, strSize;
+	uint32_t strLen, strSize;
 };
 
-void String_SetSize(String s, const uint16_t size)
+void String_SetSize(String s, const uint32_t size)
 {
 	if(s->strSize < size)
 	{
@@ -107,7 +108,7 @@ void String_strcat(String s, const char *str)
 	return;
 }
 
-const char* String_getstr(const String s)
+const char* s_getstr(const String s)
 {
 	return (const char*)s->str;
 }
@@ -125,3 +126,18 @@ void String_DebugPrint(const String s)
 	printf("\n");
 }
 
+int String_format(String s, const char *format, ...)
+{
+	int len = MIN_STRING_SIZE;
+	va_list v;	
+	do
+	{		
+		va_start(v, format);
+		String_SetSize(s, len);
+		len = vsnprintf(s->str, s->strSize, format, v);	
+		va_end(v);		
+	}
+	while(len > s->strSize);
+	s->strLen = len+1;
+	return len;
+}

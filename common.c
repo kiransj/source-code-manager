@@ -10,7 +10,7 @@
 #include <assert.h>
 
 #include "common.h"
-#define MIN_MEMORY_TO_ALLOCATE	32
+#define MIN_MEMORY_TO_ALLOCATE	16
 
 void* XMALLOC(size_t size)
 {

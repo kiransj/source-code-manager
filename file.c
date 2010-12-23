@@ -79,7 +79,7 @@ int File_Serialize(File f, char * const buffer, const int bufferSize)
 	memcpy(buffer + pos, &lenFilename, INT_SIZE); 	pos += INT_SIZE;
 	memcpy(buffer + pos, f->sha, SHA_HASH_LENGTH); 	pos += SHA_HASH_LENGTH;
 
-	memcpy(buffer + pos, String_getstr(f->filename), String_strlen(f->filename));
+	memcpy(buffer + pos, s_getstr(f->filename), String_strlen(f->filename));
 	pos += String_strlen(f->filename);
 
 	return pos;
