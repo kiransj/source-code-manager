@@ -53,7 +53,7 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha)
 	return returnValue;
 }
 
-int File_Serialize(File f, char * const buffer, const int bufferSize)
+int File_Serialize(File f, unsigned char * const buffer, const int bufferSize)
 {
 	int pos = 0;
 	int mode, size, mtime, lenSha, lenFilename, totalLen;
@@ -82,7 +82,7 @@ int File_Serialize(File f, char * const buffer, const int bufferSize)
 
 	return pos;
 }
-bool File_DeSerialize(File f, const char *data, const int dataSize)
+bool File_DeSerialize(File f, unsigned const char *data, const int dataSize)
 {
 	int pos = 0;
 	char filename[1024];

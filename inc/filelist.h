@@ -21,8 +21,8 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha);
 /*Converts the file data into machine independent form
  * and places the output in buffer.
  * Return the size of data written into buffer */
-int File_Serialize(File f, char * const buffer, const int bufferSize);
-bool File_DeSerialize(File f, const char *data, const int dataSize);
+int File_Serialize(File f, unsigned char * const buffer, const int bufferSize);
+bool File_DeSerialize(File f, unsigned const char *data, const int dataSize);
 
 /*Public API's for FileList*/
 struct _filelist;
@@ -36,4 +36,6 @@ bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha
 bool FileList_MergeList(FileList masterList, const FileList newList);
 bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive);
 void FileList_PrintList(const FileList f);
+bool FileList_Serialize(FileList f, const char *filename);
+bool FileList_DeSerialize(FileList f, const char *filename);
 #endif

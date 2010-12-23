@@ -1,12 +1,14 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include <stdio.h>
+#include <errno.h>
 typedef enum 
 {
 	false = 0,
 	true = 1,
 }bool;
 
+#define MAX_BUFFER_SIZE		4096
 
 #define LOG_ERROR(format, ...) fprintf(stderr, format "\n", ## __VA_ARGS__)
 #define LOG_INFO(format, ...)  fprintf(stdout, format "\n", ## __VA_ARGS__)

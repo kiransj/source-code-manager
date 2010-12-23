@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include "filelist.h"
 
+#define INT_SIZE		sizeof(uint32_t)
 #define MIN_LIST_SIZE	10
 #define File_Swap(a, b) { File tmp = a; a = b; b = tmp;}
 
@@ -275,6 +279,98 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 	return true;
 }
 
+bool FileList_DeSerialize(FileList f, const char *filename)
+{
+	struct stat s;
+	bool returnValue = false;
+	uint32_t fd, i, numOfFiles, temp;
+	unsigned char buffer[MAX_BUFFER_SIZE];
+	f->length = 0;
+	if((0 != stat(filename, &s)) || (!S_ISREG(s.st_mode)))
+	{
+		LOG_ERROR("FileList_DeSerialize: '%s' is not a file/ or doesn't exist", filename);
+		return false;
+	}
+
+	if(s.st_size <= 12)
+	{
+		LOG_ERROR("FileList_DeSerialize: File '%s' size %d bytes is too less", filename, (int)s.st_size);
+		return false;
+	}
+	fd = open(filename, O_RDONLY);
+	if(fd < 0)
+	{
+		LOG_ERROR("FileList_DeSerialize: open('%s') failed(%d)", filename, errno);
+		return false;
+	}
+	read(fd, &temp, INT_SIZE);
+	if(ntohl(temp) != 0xFF000001)
+	{
+		LOG_ERROR("FileList_DeSerialize: SYNC byte match failed");
+		goto EXIT;
+	}
+
+	read(fd, &temp, INT_SIZE);
+	numOfFiles = ntohl(temp);
+	SetListSize(f, numOfFiles+10);	
+	for(i = 0; i < numOfFiles; i++)
+	{
+		if(INT_SIZE != read(fd, &temp, INT_SIZE))
+			goto EXIT;
+			
+		temp = ntohl(temp);
+
+		if(temp != read(fd, buffer, temp))
+			goto EXIT;
+
+		File_DeSerialize(f->list[i], buffer, temp);
+	}
+	f->length = i;
+	returnValue = true;
+EXIT:
+	if(returnValue == false)
+	{	
+		f->length = 0;
+		LOG_ERROR("FileList_DeSerialize: failed to deserialize file '%s'", filename);
+	}
+	close(fd);
+	return returnValue;
+}
+bool FileList_Serialize(FileList f, const char *filename)
+{
+	int fd, i;
+	uint32_t temp;
+	unsigned char buffer[MAX_BUFFER_SIZE];
+	if(0 == f->length)
+	{
+		return false;
+	}
+	fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IROTH | S_IROTH);
+	if(fd < 0)
+	{
+		LOG_ERROR("FileList_Serialize: open('%s') failed(%d)", filename, errno);
+		return false;
+	}
+
+	/*Write the identifier*/
+	temp = htonl(0xFF000001);
+	write(fd, &temp, INT_SIZE); 
+
+	/*Write the number of files&folders*/	
+	temp = htonl(f->length);
+	write(fd, &temp, INT_SIZE); 
+
+	for(i = 0 ; i < f->length ; i++)
+	{
+		int length;
+		length = File_Serialize(f->list[i], buffer, MAX_BUFFER_SIZE);
+		temp = htonl(length);
+		write(fd, &temp, INT_SIZE);
+		write(fd, buffer, length);
+	}
+	close(fd);
+	return true;	
+}
 void FileList_PrintList(const FileList f)
 {
 	int i = 0;
