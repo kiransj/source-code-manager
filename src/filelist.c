@@ -113,8 +113,9 @@ File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 /*inerts the file and returns the pos where the file was inserted.
  * If the file is already present then it updates the list and returns
  * the pos of the file*/
-uint32_t FileList_InsertFile(FileList f, const char *filename, const bool computeSha)
+bool FileList_InsertFile(FileList f, const char *filename, const bool computeSha)
 {
+	bool returnValue = false;
 	uint32_t pos;
 
 	/*if the file already exist then update it*/
@@ -130,15 +131,19 @@ uint32_t FileList_InsertFile(FileList f, const char *filename, const bool comput
 		{
 			SetListSize(f, f->listSize + MIN_LIST_SIZE);
 		}
-		/*Make space for the new element to moving some element down*/
-		for(i = f->length; i > pos; i--)
+
+		if(File_SetFileData(f->list[f->length], filename, computeSha))
 		{
-			File_Swap(f->list[i], f->list[i-1]);
+			/*Make space for the new element to moving some element down*/
+			for(i = f->length; i > pos; i--)
+			{
+				File_Swap(f->list[i], f->list[i-1]);
+			}
+			f->length++;
+			returnValue = true;
 		}
-		File_SetFileData(f->list[pos], filename, computeSha);
-		f->length++;
 	}
-	return pos;
+	return returnValue;
 }
 
 /*Merges two list and */
@@ -195,6 +200,7 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 {
 	DIR *dir;
 	struct dirent *d;
+	bool returnValue = true;
 	String filename, path;
 
 	/*Set the listlength to zero..*/
@@ -209,18 +215,26 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 	String_NormalizeFolderName(path);
 
 	dir = opendir(folder);
-	while(NULL != (d = readdir(dir)))
-	{		
-		if(false == excludeFile(d->d_name))
-		{			
-			String_format(filename, "%s%s", s_getstr(path), d->d_name);
-			FileList_InsertFile(f, s_getstr(filename), computeSha);
+	if(NULL != dir)
+	{
+		while(NULL != (d = readdir(dir)))
+		{		
+			if(false == excludeFile(d->d_name))
+			{			
+				String_format(filename, "%s%s", s_getstr(path), d->d_name);
+				FileList_InsertFile(f, s_getstr(filename), computeSha);
+			}
 		}
+	}
+	else
+	{
+		LOG_ERROR("GetDirectoryConents: unable to open directory '%s'", folder);	
+		returnValue = false;
 	}
 	String_Delete(path);
 	closedir(dir);
 	String_Delete(filename);
-	return true;
+	return returnValue;
 }
 
 bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool recursive, const bool computeSha)
@@ -257,7 +271,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 
 			FileList_MergeList(f, l);
 			/*Push all the folders into the stack*/
-			for(i = 0; i < l->length; i++)
+			for(i = l->length-1; i >= 0; i--)
 			{
 				if(!S_ISDIR(l->list[i]->mode))
 					continue;

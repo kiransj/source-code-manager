@@ -61,7 +61,7 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha)
 	}
 	else
 	{
-		LOG_INFO("File_SetFileData: File '%s' doesn't exist", filename);
+		LOG_ERROR("File_SetFileData: File '%s' doesn't exist", filename);
 	}
 	return returnValue;
 }
