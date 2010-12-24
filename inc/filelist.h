@@ -2,6 +2,8 @@
 #define _FILE_LIST_H
 #include "strings.h"
 #include "sha.h"
+
+/*File operations*/
 struct _file;
 typedef struct _file *File;
 typedef struct _file  FileData;
@@ -24,18 +26,38 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha);
 int File_Serialize(File f, unsigned char * const buffer, const int bufferSize);
 bool File_DeSerialize(File f, unsigned const char *data, const int dataSize);
 
-/*Public API's for FileList*/
+/**********End of file operations********************************/
+
+/* Public API's for FileList. By Default the list is sorted during add.*/
 struct _filelist;
 typedef struct _filelist *FileList;
 
+typedef enum
+{
+	FILE_NEW = 0,
+	FILE_DELETED,
+	FILE_MODIFIED,
+	FILE_LAST_VALUE
+}DifferenceType;
+
+typedef int (*fn_difference)(File ref, File n, DifferenceType, void*);
+
+/*Operations on list*/
 FileList FileList_Create(void);
 void FileList_Delete(FileList f);
-
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
 bool FileList_MergeList(FileList masterList, const FileList newList, const bool computeSha);
-bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive, const bool computeSha);
-void FileList_PrintList(const FileList f);
+bool FileList_GetDifference(FileList reference, FileList list, fn_difference function, void *data);
+
+/*Function to convert list into format which is transportable accross
+ * network or machines*/
 bool FileList_Serialize(FileList f, const char *filename);
 bool FileList_DeSerialize(FileList f, const char *filename);
+
+/*Get the contents of the directory into the list.*/
+bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive, const bool computeSha);
+
+/*Print the list*/
+void FileList_PrintList(const FileList f, const bool recursive);
 #endif

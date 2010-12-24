@@ -10,6 +10,9 @@ typedef enum
 
 #define MAX_BUFFER_SIZE		4096
 
+#define OBJECT_FILE_LIST	0xFF000001
+
+
 #define LOG_ERROR(format, ...) fprintf(stderr, format "\n", ## __VA_ARGS__)
 #define LOG_INFO(format, ...)  fprintf(stdout, format "\n", ## __VA_ARGS__)
 
