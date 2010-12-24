@@ -56,7 +56,7 @@ bool File_SetFileData(File f, const char *filename, const bool computeSha)
 		}
 		else
 		{
-			sha_reset(f->sha);
+			f->sha[0] = '\0';
 		}
 	}
 	else

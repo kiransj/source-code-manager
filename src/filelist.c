@@ -267,9 +267,10 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 				/*Allocate some more memory if necessary*/
 				if(top == size)
 				{
+					int j;
 					stack = (String*)XREALLOC(stack, sizeof(String*) * (size + 50));
-					for(i = size; i < (size+50); i++)
-						stack[i] = String_Create();
+					for(j = size; j < (size+50); j++)
+						stack[j] = String_Create();
 					size += 50;
 				}
 			}
