@@ -72,7 +72,9 @@ static void SetListSize(FileList f, const uint32_t size)
 
 	return;
 }
-
+/*This function returns true if the file is already present in the list and sets pos 
+ * value to the pos of the file. If the file is not present then it returns false and 
+ * set the pos value to the position where this file has to be inserted*/
 static bool getPositionToInsert(const FileList f, const char *filename, uint32_t * const pos)
 {
 	uint32_t mid, max, min;
@@ -101,15 +103,16 @@ static bool getPositionToInsert(const FileList f, const char *filename, uint32_t
 	return false;
 }
 
+/*Returns the list and sets the listLength to number of elements*/
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 {
 	*listLength	 = f->length;
 	return f->list;
 }
 
-/*This function returns true if the filename already exist, else return's false.
-* pos variable points to the position in the list if the elements exist
-* if it doesn't exist it point to the pos where it should be inserted*/
+/*inerts the file and returns the pos where the file was inserted.
+ * If the file is already present then it updates the list and returns
+ * the pos of the file*/
 uint32_t FileList_InsertFile(FileList f, const char *filename, const bool computeSha)
 {
 	uint32_t pos;
@@ -138,7 +141,8 @@ uint32_t FileList_InsertFile(FileList f, const char *filename, const bool comput
 	return pos;
 }
 
-bool FileList_MergeList(FileList masterList, const FileList newList, const bool computeSha)
+/*Merges two list and */
+bool FileList_MergeList(FileList masterList, const FileList newList)
 {
 	uint32_t pos, i, j;
 
@@ -162,7 +166,7 @@ bool FileList_MergeList(FileList masterList, const FileList newList, const bool 
 		{
 			File_Swap(masterList->list[i], masterList->list[i-1]);
 		}
-		File_SetFileData(masterList->list[pos], s_getstr(newList->list[j]->filename), computeSha);
+		File_Clone(masterList->list[pos], newList->list[j]);
 		masterList->length++;
 		pos++;
 	}
@@ -196,11 +200,6 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 	/*Set the listlength to zero..*/
 	ResetList(f);
 
-	if(false == isItFolder(folder))
-	{
-		LOG_ERROR("FileList_GetDirectoryConents: '%s' is not a directory/doesn't exist", folder);
-		return false;
-	}
 	path = String_Create();
 	filename = String_Create();
 
@@ -226,11 +225,20 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 
 bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool recursive, const bool computeSha)
 {
-	if(true == recursive)
+	if(false == isItFolder(folder))
 	{
-		FileList l;
-		int size = 20, top = 0, i;
+		LOG_ERROR("FileList_GetDirectoryConents: '%s' is not a directory/doesn't exist", folder);
+		return false;
+	}
+	if(false == recursive)
+	{
+		GetDirectoryConents(f, folder, computeSha);		
+	}
+	else
+	{
+		FileList l;		
 		String *stack;
+		int size = 20, top = 0, i;
 
 		ResetList(f); /*clean the current list*/
 		/*Allocate memory for the stack, to implement recursive listing*/
@@ -244,10 +252,10 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 
 		while(0 != top)
 		{
-			if(false == GetDirectoryConents(l, s_getstr(stack[--top]), false))/*pop operation*/
+			if(false == GetDirectoryConents(l, s_getstr(stack[--top]), computeSha))/*pop operation*/
 				continue;
 
-			FileList_MergeList(f, l, computeSha);
+			FileList_MergeList(f, l);
 			/*Push all the folders into the stack*/
 			for(i = 0; i < l->length; i++)
 			{
@@ -272,10 +280,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 			String_Delete(stack[i]);
 		XFREE(stack);
 	}
-	else
-	{
-		GetDirectoryConents(f, folder, computeSha);
-	}
+
 	return true;
 }
 

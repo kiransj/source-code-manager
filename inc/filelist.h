@@ -18,6 +18,7 @@ struct _file
 
 File File_Create(void);
 void File_Delete(File f);
+void File_Clone(File f, const File f1);
 bool File_SetFileData(File f, const char *filename, const bool computeSha);
 
 /*Converts the file data into machine independent form
@@ -47,7 +48,7 @@ FileList FileList_Create(void);
 void FileList_Delete(FileList f);
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
-bool FileList_MergeList(FileList masterList, const FileList newList, const bool computeSha);
+bool FileList_MergeList(FileList masterList, const FileList newList);
 bool FileList_GetDifference(FileList reference, FileList list, fn_difference function, void *data);
 
 /*Function to convert list into format which is transportable accross

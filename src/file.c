@@ -19,6 +19,14 @@ File File_Create(void)
 	return f;
 }
 
+void File_Clone(File f, const File f1)
+{
+	String_clone(f->filename, f1->filename);
+	f->mode = f1->mode;
+	f->mtime = f1->mtime;
+	f->size = f1->size;
+	memcpy(f->sha, f1->sha, SHA_HASH_LENGTH);
+}
 void File_Delete(File f)
 {
 	String_Delete(f->filename);
