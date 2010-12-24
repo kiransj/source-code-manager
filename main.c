@@ -47,25 +47,13 @@ int differences(File ref, File n, DifferenceType type, void *data)
 }
 int main(int argc, char *argv[])
 {
-	FileList f, f1;
+	FileList f;
 	struct listdiff s;
 	s.new = s.modified = s.deleted = 0;
 	f = FileList_Create();
-	f1 = FileList_Create();
 	FileList_GetDirectoryConents(f, "./", true, true);
-	if(argc > 1)
-	{
-		LOG_INFO("Geting Difference");
-		FileList_DeSerialize(f1, "index");
-		FileList_GetDifference(f1, f,differences, NULL);
-	}
-	else
-	{
-		FileList_Serialize(f, "index");
-		FileList_PrintList(f, true);
-	}
+	FileList_PrintList(f, true);
 	FileList_Delete(f);
-	FileList_Delete(f1);
 	PrintAllocatedBytes();
 	return 0;
 }

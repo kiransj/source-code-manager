@@ -3,7 +3,7 @@ INCLUDE_DIR =inc
 CC_FLAG=-Wall -g
 SRC=src .
 OBJ_FLAGS=-Wall -c 
-LDFLAGS +=-lz
+#LDFLAGS +=-lz
 EXECUTABLES=a.out
 SOURCES=$(foreach DIR, $(SRC),$(wildcard $(DIR)/*.c)) 
 INCLUDE += $(foreach includedir, $(INCLUDE_DIR),-I $(includedir))
@@ -33,7 +33,4 @@ clean:
 	 rm -f ${EXECUTABLES} ${OBJECTS} 
 
 distclean: clean
-
-
-
 

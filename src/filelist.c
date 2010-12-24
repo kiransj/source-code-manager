@@ -173,26 +173,18 @@ static bool excludeFile(const char *filename)
 {
 	int i;
 
-	char *files[] = { ".o", ".out", "tags", ".swp" };
-	char *folder[] = { ".git", ".scm", ".", "..", ".objs"};
+	char *files[] = { ".o", ".out", "tags", ".swp", ".git", ".scm", ".objs"};
 
 	const int numOfFiles = sizeof(files)/sizeof(files[0]);
-	const int numOfFolders = sizeof(folder)/sizeof(folder[0]);
 
-	if(isItFile(filename))
+	if((strcmp(filename, ".") == 0) || (strcmp(filename, "..") == 0))
 	{
-		for(i = 0;i < numOfFiles; i++)
-			if(NULL != strstr(filename, files[i]))
-			{
-				return true;
-			}
+		return true;
 	}
-	else if(isItFolder(filename))
-	{
-		for(i = 0;i < numOfFolders; i++)
-			if(0 == strcmp(filename, folder[i]))
-				return true;
-	}
+	for(i = 0;i < numOfFiles; i++)
+		if(NULL != strstr(filename, files[i]))
+			return true;
+
 	return false;
 }
 static bool GetDirectoryConents(FileList f, const char *folder, const bool computeSha)
@@ -219,9 +211,9 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 
 	dir = opendir(folder);
 	while(NULL != (d = readdir(dir)))
-	{
+	{		
 		if(false == excludeFile(d->d_name))
-		{
+		{			
 			String_format(filename, "%s%s", s_getstr(path), d->d_name);
 			FileList_InsertFile(f, s_getstr(filename), computeSha);
 		}
@@ -261,7 +253,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 			{
 				if(!S_ISDIR(l->list[i]->mode))
 					continue;
-
+				
 				/*if it a folder then add it to the stack*/
 				String_clone(stack[top++], l->list[i]->filename); /*PUSH operation*/
 				/*Allocate some more memory if necessary*/
