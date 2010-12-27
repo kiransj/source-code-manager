@@ -97,29 +97,33 @@ int differences(File ref, File n, DifferenceType type, void *data)
 
 int cmd_status(int argc, char *argv[])
 {
+	int returnValue = 1;
 	FileList f, f1;
 	String s;
 	s = String_Create();
 	f = FileList_Create();
 	f1 = FileList_Create();
 
-	getCurrentIndexFile(s);
+	if(false == getCurrentIndexFile(s))
+		goto EXIT;
+
 	if(false == FileList_DeSerialize(f, s_getstr(s)))
 		goto EXIT;
 
 	FileList_GetDirectoryConents(f1, "./", true, false);
 
 	FileList_GetDifference(f, f1, differences, NULL);
+	returnValue = 0;
 EXIT:
 	FileList_Delete(f);
 	FileList_Delete(f1);
 	String_Delete(s);
-	return 0;
+	return returnValue;
 }
 
 int cmd_add(int argc, char *argv[])
 {
-	int i;
+	int i, returnValue = 0;
 	FileList f = FileList_Create(), f1 = FileList_Create();
 	String indexfile = String_Create(), s1 = String_Create();
 	if(argc < 3)
@@ -127,7 +131,12 @@ int cmd_add(int argc, char *argv[])
 		LOG_ERROR("usage %s %s <filename | foldername>", argv[0], argv[1]);
 	}
 
-	getCurrentIndexFile(indexfile);
+	if(false == getCurrentIndexFile(indexfile))
+	{
+		returnValue = 1;
+		goto EXIT;
+	}
+
 	FileList_DeSerialize(f, s_getstr(indexfile));
 	for(i = 2; i < argc; i++)
 	{
@@ -144,12 +153,12 @@ int cmd_add(int argc, char *argv[])
 			File_SetFileData(d, str, true);
 			FileList_InsertFile(f, str, true);
 
-			/*now insert the folder's so that we have the complete tree
-			 * Exmaple if you insert scm add ./code/src/main.c 
-			 * insert's 
-			 * ./code
+			/* Now insert the folder's so that we have the complete tree
+			 * Exmaple if you insert scm add ./code/src/main.c the following gets inserted
+			 * ./code 
 			 * ./code/src
 			 * ./code/src/main.c
+			 *
 			 * Make sure we don't insert './' */
 			while(len > 2)
 			{
@@ -157,7 +166,6 @@ int cmd_add(int argc, char *argv[])
 				if(len > 2)
 				{
 					str[len+1] = 0;
-					LOG_INFO("add %s/", str);
 					FileList_InsertFile(f, str, false);
 				}
 			}
@@ -196,16 +204,18 @@ int cmd_add(int argc, char *argv[])
 	}
 	/*Rewrite the index file*/
 	FileList_Serialize(f, s_getstr(indexfile));
+EXIT:	
 	FileList_Delete(f);
 	FileList_Delete(f1);
 	String_Delete(indexfile);
 	String_Delete(s1);
-	return 0;
+	return returnValue;
 }
 
 
 int cmd_ls(int argc, char *argv[])
 {
+	int returnValue = 0;
 	bool recursive = false, longlist = false;
 	FileList f = FileList_Create();
 	String indexfile = String_Create();
@@ -224,17 +234,21 @@ int cmd_ls(int argc, char *argv[])
 					break;
 				default:
 					LOG_ERROR("usage %c %s %s -l \"long list\" -r \"recursive\"", c, argv[0], argv[1]);
-					return 1;
+					returnValue = 1;
+					goto EXIT;
 			}
 		}
 	}
 
-	getCurrentIndexFile(indexfile);
-	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+	if(false == getCurrentIndexFile(indexfile))
 	{
-		FileList_PrintList(f, recursive, longlist);
+		returnValue = 1;
+		goto EXIT;	
 	}
+	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+		FileList_PrintList(f, recursive, longlist);
+EXIT:	
 	String_Delete(indexfile);
 	FileList_Delete(f);
-	return 0;
+	return returnValue;
 }

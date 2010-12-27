@@ -48,5 +48,5 @@ int main(int argc, char *argv[])
 	{
 		LOG_ERROR("command '%s' not found, to see list of commands run '%s' without arguments", argv[1], argv[0]);
 	}
-	return 0;
+	return returnValue;
 }

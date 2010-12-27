@@ -452,7 +452,10 @@ bool FileList_DeSerialize(FileList f, const char *filename)
 		if(temp != read(fd, buffer, temp))
 			goto EXIT;
 
-		File_DeSerialize(f->list[i], buffer, temp);
+		if(false == File_DeSerialize(f->list[i], buffer, temp))
+		{
+			goto EXIT;
+		}
 	}
 	f->length = i;
 	returnValue = true;

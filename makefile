@@ -1,14 +1,15 @@
 CC=gcc
 INCLUDE_DIR =inc 
 CC_FLAG=-Wall -g
-SRC=src scm .
+SRC=src blogic .
 OBJ_FLAGS=-Wall -c 
 LDFLAGS +=-lz
 EXECUTABLES=a.out
 SOURCES=$(foreach DIR, $(SRC),$(wildcard $(DIR)/*.c)) 
 INCLUDE += $(foreach includedir, $(INCLUDE_DIR),-I $(includedir))
 INCLUDE_FILES += $(foreach includedir, $(INCLUDE_DIR),$(includedir)/*.h)
-OBJECTS := $(addprefix .objs/,$(SOURCES:.c=.o)) 
+OBJS_FOLDER=.objs
+OBJECTS := $(addprefix ${OBJS_FOLDER}/,$(SOURCES:.c=.o)) 
 
 all: ${EXECUTABLES}
 
@@ -22,7 +23,10 @@ opt3: ${EXECUTABLES}
 
 .PHONY: all clean distclean
 
-${EXECUTABLES}: ${OBJECTS} ${INCLUDE_FILES}
+${OBJS_FOLDER}:
+	mkdir -p ${foreach s, ${SRC}, ${OBJS_FOLDER}/${s}}
+
+${EXECUTABLES}: ${OBJS_FOLDER} ${OBJECTS} ${INCLUDE_FILES}
 	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R 
 
 #if any header files gets modified compile the whole project again
@@ -30,8 +34,9 @@ ${EXECUTABLES}: ${OBJECTS} ${INCLUDE_FILES}
 	${CC} ${INCLUDE} ${OBJ_FLAGS} $< -o $@
 
 clean:
-	 rm -f ${EXECUTABLES} ${OBJECTS} 
+	 rm -rf ${EXECUTABLES} ${OBJS_FOLDER}
 cleanscm:
 	rm -rf .scm
+
 distclean: clean
 
