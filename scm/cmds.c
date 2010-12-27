@@ -180,3 +180,39 @@ int cmd_add(int argc, char *argv[])
 	String_Delete(s1);
 	return 0;
 }
+
+
+int cmd_ls(int argc, char *argv[])
+{
+	bool recursive = false, longlist = false;
+	FileList f = FileList_Create();
+	String indexfile = String_Create();
+	if(argc >= 3)
+	{
+		int c;
+		while((c = getopt(argc, argv, "rl")) != -1)
+		{
+			switch(c)
+			{
+				case 'r':	
+					recursive = true;
+					break;
+				case 'l':
+					longlist = true;
+					break;
+				default:
+					LOG_ERROR("usage %c %s %s -l \"long list\" -r \"recursive\"", c, argv[0], argv[1]);
+					return 1;
+			}
+		}
+	}
+
+	getCurrentIndexFile(indexfile);
+	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+	{
+		FileList_PrintList(f, recursive, longlist);
+	}
+	String_Delete(indexfile);
+	FileList_Delete(f);
+	return 0;
+}

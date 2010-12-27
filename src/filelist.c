@@ -500,12 +500,19 @@ bool FileList_Serialize(FileList f, const char *filename)
 }
 
 
-void FileList_PrintList(const FileList f, const bool recursive)
+void FileList_PrintList(const FileList f, const bool recursive, const bool longlist)
 {
 	int i = 0;
 	for(i = 0; i < f->length; i++)
 	{
-		LOG_INFO("%s%c", s_getstr(f->list[i]->filename), S_ISDIR(f->list[i]->mode) ? '/' : ' ');
+		if(longlist)
+		{		
+			LOG_INFO("%7o %40s %s", f->list[i]->mode, f->list[i]->sha, s_getstr(f->list[i]->filename));
+		}
+		else
+		{			
+			LOG_INFO("%s%c", s_getstr(f->list[i]->filename), S_ISDIR(f->list[i]->mode) ? '/' : ' ');
+		}
 		if(S_ISDIR(f->list[i]->mode) && !recursive)
 		{
 			int pos = i++;

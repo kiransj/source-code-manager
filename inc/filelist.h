@@ -61,5 +61,5 @@ bool FileList_DeSerialize(FileList f, const char *filename);
 bool FileList_GetDirectoryConents(FileList f, const char *path, const bool recursive, const bool computeSha);
 
 /*Print the list*/
-void FileList_PrintList(const FileList f, const bool recursive);
+void FileList_PrintList(const FileList f, const bool recursive, const bool longlist);
 #endif
