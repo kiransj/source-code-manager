@@ -19,12 +19,12 @@ struct _filelist
 };
 
 
-static void ResetList(FileList f);
+
 static void SetListSize(FileList f, const uint32_t size);
 static bool getPositionToInsert(const FileList f, const char* filename, uint32_t * const pos);
 
 
-static void ResetList(FileList f)
+void FileList_ResetList(FileList f)
 {
 	f->length = 0;
 }
@@ -204,7 +204,7 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 	String filename, path;
 
 	/*Set the listlength to zero..*/
-	ResetList(f);
+	FileList_ResetList(f);
 
 	path = String_Create();
 	filename = String_Create();
@@ -254,7 +254,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 		String *stack;
 		int size = 20, top = 0, i;
 
-		ResetList(f); /*clean the current list*/
+		FileList_ResetList(f); /*clean the current list*/
 		/*Allocate memory for the stack, to implement recursive listing*/
 		stack = (String*)XMALLOC(sizeof(String*) * size);
 		for(i = 0; i < size; i++)
@@ -334,7 +334,16 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			/*If this filename doesn't exist in the reference list and is present in the other
 			 * it means this file is a new one*/
 			function(NULL, newlist->list[pos], FILE_NEW, data);
-			pos++;
+			if(S_ISDIR(newlist->list[pos]->mode))
+			{
+				int i = pos++;
+				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), String_strlen(newlist->list[i]->filename)))
+					pos++;
+			}
+			else
+			{
+				pos++;
+			}
 		}
 	}
 
@@ -342,7 +351,18 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 	while(pos < newlist->length)
 	{
 		function(NULL, newlist->list[pos], FILE_NEW, data);
-		pos++;
+		
+		if(S_ISDIR(newlist->list[pos]->mode))
+		{
+			int i = pos++;
+			while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), 
+							  String_strlen(newlist->list[i]->filename)))
+				pos++;
+		}
+		else
+		{
+			pos++;
+		}
 	}
 
 	while(refpos < reference->length)
@@ -361,14 +381,14 @@ bool FileList_DeSerialize(FileList f, const char *filename)
 	uint32_t fd, i, numOfFiles, temp;
 	unsigned char buffer[MAX_BUFFER_SIZE];
 
-	ResetList(f);
+	FileList_ResetList(f);
 	if((0 != stat(filename, &s)) || (!S_ISREG(s.st_mode)))
 	{
 		LOG_ERROR("FileList_DeSerialize: '%s' is not a file/ or doesn't exist", filename);
 		return false;
 	}
 
-	if(s.st_size <= 12)
+	if(s.st_size < 8)
 	{
 		LOG_ERROR("FileList_DeSerialize: File '%s' size %d bytes is too less", filename, (int)s.st_size);
 		return false;
@@ -406,7 +426,7 @@ bool FileList_DeSerialize(FileList f, const char *filename)
 EXIT:
 	if(returnValue == false)
 	{
-		ResetList(f);
+		FileList_ResetList(f);
 		LOG_ERROR("FileList_DeSerialize: failed to deserialize file '%s'", filename);
 	}
 	close(fd);
@@ -417,10 +437,7 @@ bool FileList_Serialize(FileList f, const char *filename)
 	int fd, i;
 	uint32_t temp;
 	unsigned char buffer[MAX_BUFFER_SIZE];
-	if(0 == f->length)
-	{
-		return false;
-	}
+
 	unlink(filename);
 	fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IROTH | S_IROTH);
 	if(fd < 0)

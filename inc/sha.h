@@ -30,8 +30,8 @@
 
 /*20 bytes for sha so 40 bytes to put it in hex and one byte for NULL
  * A SHA is valid only if it ends with a NULL char*/
-#define SHA_HASH_LENGTH				41
-typedef unsigned char ShaBuffer[SHA_HASH_LENGTH];
+#define SHA_HASH_LENGTH				40
+typedef unsigned char ShaBuffer[SHA_HASH_LENGTH+1];
 
 bool sha_buffer(const unsigned char *input, int ilen, ShaBuffer sha);
 bool sha_file(const char *path, ShaBuffer sha);

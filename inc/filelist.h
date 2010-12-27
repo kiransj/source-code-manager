@@ -46,6 +46,7 @@ typedef int (*fn_difference)(File ref, File n, DifferenceType, void*);
 /*Operations on list*/
 FileList FileList_Create(void);
 void FileList_Delete(FileList f);
+void FileList_ResetList(FileList f);
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
 bool FileList_MergeList(FileList masterList, const FileList newList);

@@ -1,7 +1,7 @@
 CC=gcc
 INCLUDE_DIR =inc 
 CC_FLAG=-Wall -g
-SRC=src .
+SRC=src scm .
 OBJ_FLAGS=-Wall -c 
 #LDFLAGS +=-lz
 EXECUTABLES=a.out
@@ -23,7 +23,7 @@ opt3: ${EXECUTABLES}
 .PHONY: all clean distclean
 
 ${EXECUTABLES}: ${OBJECTS} ${INCLUDE_FILES}
-	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@
+	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R 
 
 #if any header files gets modified compile the whole project again
 .objs/%.o: %.c ${INCLUDE_FILES}
@@ -31,6 +31,7 @@ ${EXECUTABLES}: ${OBJECTS} ${INCLUDE_FILES}
 
 clean:
 	 rm -f ${EXECUTABLES} ${OBJECTS} 
-
+cleanscm:
+	rm -rf .scm
 distclean: clean
 

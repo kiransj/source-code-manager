@@ -347,6 +347,10 @@ bool sha_file( const char *path, ShaBuffer output)
     sha1_context ctx;
     unsigned char buf[1024];
 
+	if(false == isItFile(path))
+	{
+		return false;
+	}
     if((f = fopen( path, "rb")) == NULL)
         return false;
 
