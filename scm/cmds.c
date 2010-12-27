@@ -133,12 +133,34 @@ int cmd_add(int argc, char *argv[])
 	{
 		if(true == isItFile(argv[i]))
 		{
+			char *str;
+			int len;
 			File d = File_Create();
 			String_strcpy(s1, argv[i]);
 			String_NormalizeFileName(s1);
-			LOG_INFO("adding %s", s_getstr(s1));
-			FileList_InsertFile(f, s_getstr(s1), true);
-			File_SetFileData(d, s_getstr(s1), true);
+			str = (char*)s_getstr(s1);
+			len = String_strlen(s1);
+			LOG_INFO("adding %s", str);
+			File_SetFileData(d, str, true);
+			FileList_InsertFile(f, str, true);
+
+			/*now insert the folder's so that we have the complete tree
+			 * Exmaple if you insert scm add ./code/src/main.c 
+			 * insert's 
+			 * ./code
+			 * ./code/src
+			 * ./code/src/main.c
+			 * Make sure we don't insert './' */
+			while(len > 2)
+			{
+				while((len > 2) && str[len--] != '/');
+				if(len > 2)
+				{
+					str[len+1] = 0;
+					LOG_INFO("add %s/", str);
+					FileList_InsertFile(f, str, false);
+				}
+			}
 
 			/*copy the file to repo..*/
 			copyFileToRepo(d);
