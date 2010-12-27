@@ -9,17 +9,18 @@ struct commands
 {
 	char commandName[16];
 	command_fn function;
+	char *helpmsg;
 };
 
 
 int main(int argc, char *argv[])
 {
-	struct commands cmds[] = {  {"sha", 			cmd_sha},
-								{"version",			cmd_version},
-								{"init",			cmd_init},
-								{"branch",			cmd_branch},
-								{"status",			cmd_status},
-								{"add",			    cmd_add},
+	struct commands cmds[] = {  {"sha", 			cmd_sha		, "compute hash of the files"},
+								{"version",			cmd_version , "display version "},
+								{"init",			cmd_init	, "intialize the repo"},
+								{"branch",			cmd_branch	, "displays the current branch"},
+								{"status",			cmd_status	, "show's current status wrt to index file"},
+								{"add",			    cmd_add		, "adds file's or folders into the index file"},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 
@@ -27,6 +28,11 @@ int main(int argc, char *argv[])
 
 	if(1 == argc)
 	{
+		LOG_INFO("Currently supported commands\n");
+		for(i = 0; i < commands_len; i++)
+		{
+			LOG_INFO("    %-16s  %s", cmds[i].commandName, cmds[i].helpmsg);
+		}
 		return 0;
 	}
 	for(i = 0; i < commands_len; i++)
@@ -39,7 +45,7 @@ int main(int argc, char *argv[])
 	}
 	if(i == commands_len)
 	{
-		LOG_ERROR("command '%s' not found", argv[1]);
+		LOG_ERROR("command '%s' not found, to see list of commands run '%s' without arguments", argv[1], argv[0]);
 	}
 	return 0;
 }
