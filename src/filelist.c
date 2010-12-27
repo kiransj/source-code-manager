@@ -221,7 +221,7 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 		{		
 			if(false == excludeFile(d->d_name))
 			{			
-				String_format(filename, "%s%s", s_getstr(path), d->d_name);
+				String_format(filename, "%s/%s", s_getstr(path), d->d_name);
 				FileList_InsertFile(f, s_getstr(filename), computeSha);
 			}
 		}
@@ -327,23 +327,40 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			/*If this filename exist in the reference list and not in the other
 			 * it means this file is deleted*/
 			function(reference->list[refpos], NULL, FILE_DELETED, data);
-			refpos++;
+			/*if its a folder then skip the entries of the folder*/
+			if(S_ISDIR(reference->list[refpos]->mode))
+			{
+				int i = refpos++;
+				String_strcat(reference->list[i]->filename, "/");
+				while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename), 
+							String_strlen(reference->list[i]->filename)))
+					refpos++;
+			}
+			else
+			{
+				refpos++;
+			}
 		}
 		else /*if(temp > 0)*/
 		{
 			/*If this filename doesn't exist in the reference list and is present in the other
 			 * it means this file is a new one*/
 			function(NULL, newlist->list[pos], FILE_NEW, data);
+
+			/*if its a folder then skip the entries of the folder*/
 			if(S_ISDIR(newlist->list[pos]->mode))
 			{
 				int i = pos++;
-				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), String_strlen(newlist->list[i]->filename)))
+				String_strcat(newlist->list[i]->filename, "/");
+				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), 
+							String_strlen(newlist->list[i]->filename)))
 					pos++;
 			}
 			else
 			{
 				pos++;
 			}
+
 		}
 	}
 
@@ -355,6 +372,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		if(S_ISDIR(newlist->list[pos]->mode))
 		{
 			int i = pos++;
+			String_strcat(newlist->list[i]->filename, "/");
 			while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), 
 							  String_strlen(newlist->list[i]->filename)))
 				pos++;
@@ -367,8 +385,19 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 
 	while(refpos < reference->length)
 	{
-			function(reference->list[refpos], NULL, FILE_DELETED, data);
+		function(reference->list[refpos], NULL, FILE_DELETED, data);
+		if(S_ISDIR(reference->list[refpos]->mode))
+		{
+			int i = refpos++;
+			String_strcat(reference->list[i]->filename, "/");
+			while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename), 
+						String_strlen(reference->list[i]->filename)))
+				refpos++;
+		}
+		else
+		{
 			refpos++;
+		}
 	}
 	returnValue = true;
 EXIT:

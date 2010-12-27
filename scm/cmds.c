@@ -72,6 +72,20 @@ EXIT:
 	return returnValue;
 }
 
+bool getCurrentIndexFile(String s)
+{
+	bool returnValue = false;
+	String s1 = String_Create();
+
+	if(false == getBranchName(s1))
+		goto EXIT;
+	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(s1), SCM_INDEX_FILENAME);
+	returnValue = true;
+EXIT:
+	String_Delete(s1);
+	return returnValue;
+}
+
 int cmd_branch(int argc, char *argv[])
 {
 	String s;
@@ -84,7 +98,6 @@ int cmd_branch(int argc, char *argv[])
 	return 0;
 }
 
-
 int differences(File ref, File n, DifferenceType type, void *data)
 {
 	bool folder = false;
@@ -95,7 +108,7 @@ int differences(File ref, File n, DifferenceType type, void *data)
 			LOG_INFO("?? %s%c", s_getstr(n->filename), folder? '/':' ');
 			break;
 		case FILE_DELETED:
-			folder = isItFolder(s_getstr(n->filename));
+			folder = isItFolder(s_getstr(ref->filename));
 			LOG_INFO(" D %s%c", s_getstr(ref->filename), folder? '/' : ' ');
 			break;
 		case FILE_MODIFIED:
@@ -126,28 +139,78 @@ int differences(File ref, File n, DifferenceType type, void *data)
 	}
 	return 0;
 }
+
 int cmd_status(int argc, char *argv[])
 {
 	FileList f, f1;
-	String s, s1;
+	String s;
 	s = String_Create();
-	s1 = String_Create();
 	f = FileList_Create();
 	f1 = FileList_Create();
 
+	getCurrentIndexFile(s);
+	if(false == FileList_DeSerialize(f, s_getstr(s)))
+		goto EXIT;
 
-	if(false == getBranchName(s))
-		goto EXIT;
-	String_format(s1, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(s), SCM_INDEX_FILENAME);
-	if(false == FileList_DeSerialize(f, s_getstr(s1)))
-		goto EXIT;
-	FileList_GetDirectoryConents(f1, ".", true, false);
+	FileList_GetDirectoryConents(f1, "./", true, false);
 
 	FileList_GetDifference(f, f1, differences, NULL);
 EXIT:
 	FileList_Delete(f);
 	FileList_Delete(f1);
 	String_Delete(s);
+	return 0;
+}
+
+int cmd_add(int argc, char *argv[])
+{
+	int i;
+	FileList f = FileList_Create(), f1 = FileList_Create();
+	String indexfile = String_Create(), s1 = String_Create();
+	if(argc < 3)
+	{
+		LOG_ERROR("usage %s %s <filename | foldername>", argv[0], argv[1]);
+	}
+
+	getCurrentIndexFile(indexfile);
+	FileList_DeSerialize(f, s_getstr(indexfile));
+	for(i = 2; i < argc; i++)
+	{
+		if(true == isItFile(argv[i]))
+		{	
+			String_strcpy(s1, argv[i]);
+			String_NormalizeFileName(s1);
+			LOG_INFO("adding %s", s_getstr(s1));
+			FileList_InsertFile(f, s_getstr(s1), true);
+		}
+		else if(true == isItFolder(argv[i]))
+		{
+			File *list;
+			uint32_t num = 0, j;
+			FileList_ResetList(f1);		
+			String_strcpy(s1, argv[i]);
+
+			String_NormalizeFolderName(s1);
+			
+			LOG_INFO("adding %s/", s_getstr(s1));
+			if(strcmp(s_getstr(s1), ".") != 0)
+				FileList_InsertFile(f, s_getstr(s1), false);
+
+			FileList_GetDirectoryConents(f1, s_getstr(s1), true /*recursive*/, false /*computeSha*/);
+			list = FileList_GetListDetails(f1, &num);
+
+			/*Add the individual files to the list*/
+			for(j = 0; j < num; j++)
+			{
+				FileList_InsertFile(f, s_getstr(list[j]->filename), true);
+			}
+		}
+	}
+	/*Rewrite the index file*/
+	FileList_Serialize(f, s_getstr(indexfile));
+	FileList_Delete(f);
+	FileList_Delete(f1);
+	String_Delete(indexfile);
 	String_Delete(s1);
 	return 0;
 }

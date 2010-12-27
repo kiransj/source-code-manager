@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
 								{"init",			cmd_init},
 								{"branch",			cmd_branch},
 								{"status",			cmd_status},
+								{"add",			    cmd_add},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 

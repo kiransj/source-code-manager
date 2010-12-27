@@ -150,9 +150,22 @@ void String_NormalizeFolderName(String s)
 	int n = s->strLen-1;
 
 	while((n > 0) && (s->str[--n] == '/'));
-	s->str[n+1] = '/';
-	s->str[n+2] = 0;
-	s->strLen = n+2;
+	s->str[n+1] = 0;
+	s->strLen = n+1;
+	
+	if((strcmp(s->str, ".") != 0) && (strncmp(s->str, "./", 2) != 0))
+	{
+		memmove(s->str+2, s->str, s->strLen);
+		s->str[0] = '.';
+		s->str[1] = '/';
+		s->strLen = s->strLen+2;
+		s->str[s->strLen] = 0;
+	}	
+	return;
+}
+
+void String_NormalizeFileName(String s)
+{
 
 	if(strncmp(s->str, "./", 2) != 0)
 	{
@@ -160,6 +173,7 @@ void String_NormalizeFolderName(String s)
 		s->str[0] = '.';
 		s->str[1] = '/';
 		s->strLen = s->strLen+2;
+		s->str[s->strLen] = 0;
 	}
 	return;
 }
