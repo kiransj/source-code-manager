@@ -316,12 +316,14 @@ void sha1_finish( sha1_context *ctx, ShaBuffer output)
     PUT_ULONG_BE( ctx->state[3], buffer, 12 );
     PUT_ULONG_BE( ctx->state[4], buffer, 16 );
 
-
+	output[0] = '\0';
 	for(i = 0; i < 20; i++)
 	{
-		snprintf((char*)&(output[i*2]), (size_t)(SHA_HASH_LENGTH - 2*i - 1), "%2.2x", (unsigned char)buffer[i]);
+		char str[3];
+		snprintf(str, 3, "%2.2x", (unsigned char)buffer[i]);
+		strcat((char*)output, str);
 	}
-	output[SHA_HASH_LENGTH-1] = '\0';
+	output[SHA_HASH_LENGTH] = '\0';
 }
 
 /*

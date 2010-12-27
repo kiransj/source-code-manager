@@ -6,7 +6,6 @@
 /*File operations*/
 struct _file;
 typedef struct _file *File;
-typedef struct _file  FileData;
 
 struct _file
 {
@@ -47,6 +46,7 @@ typedef int (*fn_difference)(File ref, File n, DifferenceType, void*);
 FileList FileList_Create(void);
 void FileList_Delete(FileList f);
 void FileList_ResetList(FileList f);
+inline bool FileList_Find(FileList f, const char *filename, uint32_t * const pos);
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
 bool FileList_MergeList(FileList masterList, const FileList newList);

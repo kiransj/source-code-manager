@@ -103,6 +103,10 @@ static bool getPositionToInsert(const FileList f, const char *filename, uint32_t
 	return false;
 }
 
+bool FileList_Find(FileList f, const char *filename, uint32_t * const pos)
+{
+	return getPositionToInsert(f, filename, pos);
+}
 /*Returns the list and sets the listLength to number of elements*/
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 {

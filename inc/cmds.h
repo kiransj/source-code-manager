@@ -6,4 +6,5 @@ int cmd_init(int argc, char *argv[]);
 int cmd_branch(int argc, char *argv[]);
 int cmd_status(int argc, char *argv[]);
 int cmd_add(int argc, char *argv[]);
+int cmd_ls(int argc, char *argv[]);
 #endif

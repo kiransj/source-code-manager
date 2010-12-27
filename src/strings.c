@@ -166,7 +166,6 @@ void String_NormalizeFolderName(String s)
 
 void String_NormalizeFileName(String s)
 {
-
 	if(strncmp(s->str, "./", 2) != 0)
 	{
 		memmove(s->str+2, s->str, s->strLen);

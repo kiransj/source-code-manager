@@ -11,8 +11,7 @@
 
 File File_Create(void)
 {
-	File f = (File)XMALLOC(sizeof(FileData));
-
+	File f = (File)XMALLOC(sizeof(struct _file));
 	f->filename = String_Create();
 	f->mode = f->mtime = f->size = 0;
 	sha_reset(f->sha);
@@ -120,9 +119,9 @@ bool File_DeSerialize(File f, unsigned const char *data, const int dataSize)
 	f->size = ntohl(f->size);
 	f->mtime = ntohl(f->mtime);
 	lenFilename = ntohl(lenFilename);
-	if(lenSha > SHA_HASH_LENGTH)
+	if(lenSha > (SHA_HASH_LENGTH+1))
 	{
-		LOG_ERROR("SHA length %d is not correct value, it should have been %d", lenSha, SHA_HASH_LENGTH);
+		LOG_ERROR("SHA length %d is not correct value, it should have been %d", lenSha, SHA_HASH_LENGTH+1);
 		return false;
 	}
 	if(dataSize != (INT_SIZE * 5 + lenSha + lenFilename))

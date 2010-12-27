@@ -1,6 +1,7 @@
 #ifndef _SCM_H_
 #define _SCM_H_
 
+#include <sys/stat.h>
 
 #define SCM_DEFAULT_BRANCH	"master"
 

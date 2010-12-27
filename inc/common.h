@@ -30,4 +30,7 @@ extern void *memcpy (void *dest, const void *src, size_t n);
 int Nstrlen(const char *str);
 bool isItFile(const char *name);
 bool isItFolder(const char *name);
+int getTime(char buffer[64]);
+bool compressAndSave(const char *sourceFile, const char *destFile, int mode);
+bool decompressAndSave(const char *sourceFile, const char *destFile, int mode);
 #endif

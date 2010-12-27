@@ -9,10 +9,10 @@
 #include "filelist.h"
 #include "common.h"
 #include "scm.h"
-
+#include "obj.h"
 int cmd_version(int argc, char *argv[])
 {
-	LOG_INFO("scm Version 0.01");
+	LOG_INFO("%s Version 0.01", argv[0]);
 	return 0;
 }
 
@@ -39,51 +39,6 @@ int cmd_sha(int argc, char *argv[])
 		}
 	}
 	return 0;
-}
-
-
-static bool getBranchName(String const s)
-{
-	FILE *fp;
-	char branchName[MAX_BUFFER_SIZE], type[MAX_BUFFER_SIZE];
-	bool returnValue = false;
-	if(false == isItFile(SCM_HEAD_FILE))
-	{
-		LOG_ERROR("fatal: getBranchName() HEAD file doesn't exist");
-		goto EXIT;
-	}
-	fp = fopen(SCM_HEAD_FILE, "r");
-	if(NULL == fp)
-	{
-		LOG_ERROR("fatal: getBranchName(): unable to open HEAD file");
-		goto EXIT;
-	}
-	fscanf(fp, "%s %s", type, branchName);
-	if(NULL == strstr(type, "branch:"))
-	{
-		LOG_ERROR("getBranchName() HEAD file format unrecogized!!");
-		fclose(fp);
-		goto EXIT;
-	}
-	String_strcpy(s, branchName);
-	returnValue = true;
-	fclose(fp);
-EXIT:	
-	return returnValue;
-}
-
-bool getCurrentIndexFile(String s)
-{
-	bool returnValue = false;
-	String s1 = String_Create();
-
-	if(false == getBranchName(s1))
-		goto EXIT;
-	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(s1), SCM_INDEX_FILENAME);
-	returnValue = true;
-EXIT:
-	String_Delete(s1);
-	return returnValue;
 }
 
 int cmd_branch(int argc, char *argv[])
@@ -177,11 +132,17 @@ int cmd_add(int argc, char *argv[])
 	for(i = 2; i < argc; i++)
 	{
 		if(true == isItFile(argv[i]))
-		{	
+		{
+			File d = File_Create();
 			String_strcpy(s1, argv[i]);
 			String_NormalizeFileName(s1);
 			LOG_INFO("adding %s", s_getstr(s1));
 			FileList_InsertFile(f, s_getstr(s1), true);
+			File_SetFileData(d, s_getstr(s1), true);
+
+			/*copy the file to repo..*/
+			copyFileToRepo(d);
+			File_Delete(d);
 		}
 		else if(true == isItFolder(argv[i]))
 		{
@@ -202,7 +163,12 @@ int cmd_add(int argc, char *argv[])
 			/*Add the individual files to the list*/
 			for(j = 0; j < num; j++)
 			{
+				uint32_t pos, temp;
 				FileList_InsertFile(f, s_getstr(list[j]->filename), true);
+
+				/*copy the file to repo..*/
+				if(FileList_Find(f, s_getstr(list[j]->filename), &pos))
+					copyFileToRepo(FileList_GetListDetails(f, &temp)[pos]);
 			}
 		}
 	}

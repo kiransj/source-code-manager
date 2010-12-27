@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
 								{"branch",			cmd_branch	, "displays the current branch"},
 								{"status",			cmd_status	, "show's current status wrt to index file"},
 								{"add",			    cmd_add		, "adds file's or folders into the index file"},
+								{"ls",			    cmd_ls		, "prints the file's"},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 
