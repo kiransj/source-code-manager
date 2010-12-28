@@ -82,10 +82,11 @@ bool setCurrentCommit(ShaBuffer currentCommit)
 	fd = open(s_getstr(s), O_WRONLY);
 	if(fd > 0)
 	{
-		write(fd, currentCommit, SHA_HASH_LENGTH);
+		String_format(s, "%s\n", currentCommit);
+		write(fd, s_getstr(s), String_strlen(s));
 		close(fd);
 		returnValue = true;
-	}	
+	}
 
 EXIT:
 	String_Delete(s);
@@ -116,12 +117,14 @@ bool getCurrentCommit(Commit c, ShaBuffer currentCommit)
 			}
 		}
 		returnValue = true;
-	}	
+	}
 EXIT:
 	String_Delete(s);
 	String_Delete(s1);
 	return returnValue;
 }
+
+/*copies files to the branch cache...*/
 bool copyFileToCache(File f)
 {
 	bool returnValue = false;
@@ -131,15 +134,13 @@ bool copyFileToCache(File f)
 		if(strlen((char*)f->sha) !=  SHA_HASH_LENGTH)
 		{
 			LOG_ERROR("copyFileToRepo: trying to copy file whose sha is not computed %d", strlen((char*)f->sha));
-			goto EXIT;
+			return false;
 		}
 		s = String_Create();
 		branchName = String_Create();
 
 		if(false == getBranchName(branchName))
 		{
-			String_Delete(s);
-			String_Delete(branchName);
 			goto EXIT;
 		}
 		String_format(s, "%s/%s", SCM_BLOB_FOLDER, f->sha);
@@ -148,15 +149,15 @@ bool copyFileToCache(File f)
 		/*Check if this file already exist in the repo*/
 		if(false == isItFile(s_getstr(s)))
 		{
-			/*check if the file exist in the cache..
-			 * if it doesn't then copy it to the cache..*/
+			/*check if the file exist in the cache. if it doesn't then copy it to the cache..*/
 			String_format(s, "%s/%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER, f->sha);
 			if(false == isItFile(s_getstr(s)))
 				returnValue = compressAndSave(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
 		}
+EXIT:	
 		String_Delete(s);
+		String_Delete(branchName);
 	}
-EXIT:
 	return returnValue;
 }
 
@@ -172,10 +173,55 @@ bool copyTreeToRepo(File f)
 	/*Check if this file already exist in the repo*/
 	if(false == isItFile(s_getstr(s)))
 	{
-		LOG_INFO("copy tree from %s --> %s", s_getstr(f->filename), s_getstr(s));
 		returnValue = copyFile(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
 	}
 	String_Delete(s);
 	return returnValue;
 }
-	
+
+/*copies file from the branch cache to the blob repo...*/
+bool copyFileToRepo(File f)
+{
+	bool returnValue = false;
+
+	if(S_ISREG(f->mode))
+	{
+
+		String s, branchName, s1;
+		if(strlen((char*)f->sha) !=  SHA_HASH_LENGTH)
+		{
+			LOG_ERROR("copyFileToRepo: trying to copy file whose sha is not computed %d", strlen((char*)f->sha));
+			return false;
+		}
+		s = String_Create();
+		s1 = String_Create();
+		branchName = String_Create();
+
+		if(false == getBranchName(branchName))
+		{	
+			goto EXIT;
+		}
+		String_format(s1, "%s/%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER, f->sha);
+		String_format(s, "%s/%s", SCM_BLOB_FOLDER, f->sha);
+		/*check if the file is in the cache... if it not then it should be in repo.
+		 * if it is not in repo, then where is it?*/
+		if(true == isItFile(s_getstr(s1)))
+		{
+			rename(s_getstr(s1), s_getstr(s));
+			chmod(s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
+			returnValue = true;
+		}
+		else if(false == isItFile(s_getstr(s)))
+		{
+			LOG_ERROR("file '%s' is not in cache nor in repo... (this should neven happen, state may be invalid)", s_getstr(f->filename));
+			LOG_ERROR("copying file from working area to repo..");
+			returnValue = compressAndSave(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
+		}
+EXIT:
+		String_Delete(s);
+		String_Delete(s1);
+		String_Delete(branchName);
+	}
+
+	return returnValue;
+}

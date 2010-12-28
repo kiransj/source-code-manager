@@ -99,6 +99,8 @@ bool Commit_WriteCommitFile(Commit c, ShaBuffer commitSha)
 		LOG_ERROR("Commit_WriteCommitFile() open('%s') failed(%d)", s_getstr(s), errno);
 		goto EXIT;
 	}
+
+	/*Write the object identification Code..*/
 	temp = htonl(OBJECT_COMMIT_FILE);
 	write(fd, &temp, INT_SIZE);
 
@@ -155,6 +157,9 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 		goto EXIT;
 	}
 	fd = open(s_getstr(s), O_RDONLY);
+
+
+	/*read the object identification Code and check it*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	if(temp != OBJECT_COMMIT_FILE)
@@ -163,28 +168,33 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 		close(fd);
 		goto EXIT;
 	}
-	
+
+	/*read the time*/
 	read(fd, &temp, INT_SIZE);
 	c->rawtime = ntohl(temp);
 
+	/*read the tree Sha*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	read(fd, c->tree, temp);
 
+	/*read parent0*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	read(fd, c->parent0, temp);
 
-
+	/*read parent1*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	read(fd, c->parent1, temp);
 
+	/*read the author name and EmailId*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	String_SetSize(c->author,temp+10);
 	read(fd, (void*)s_getstr(c->author), temp);
-
+	
+	/*read the message*/
 	read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	String_SetSize(c->message,temp+10);

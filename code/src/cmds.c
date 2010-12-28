@@ -274,6 +274,7 @@ EXIT:
 struct diff
 {
 	int n, d, m;
+	bool copyFile;
 };
 static int differences_commit(File ref, File n, DifferenceType type, void *data)
 {
@@ -282,23 +283,31 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 	{
 		case FILE_NEW:
 			p->n++;
+			if((true == p->copyFile) && S_ISREG(n->mode))
+				copyFileToRepo(n);
 			break;
 		case FILE_DELETED:
 			p->d++;
 			break;
 		case FILE_MODIFIED:
 
-			if(ref->mode !=  n->mode)
-				p->m++;
-			else if(S_ISREG(ref->mode))
+			if(S_ISREG(ref->mode))
 			{
-				if((strlen((char*)n->sha)+1) != SHA_HASH_LENGTH)
-					sha_file(s_getstr(n->filename), n->sha);
 				if(false == sha_compare(ref->sha, n->sha))
 				{
 					p->m++;
+					if(true == p->copyFile)
+						copyFileToRepo(n);
+				}
+				else if(ref->mode !=  n->mode)
+					p->m++;
+				else
+				{
+					LOG_INFO("differences_commit: something is wrong.. unable to detect what has changed?");
 				}
 			}
+			else if(ref->mode !=  n->mode)
+				p->m++;
 			break;
 		case FILE_LAST_VALUE:
 		default:
@@ -307,14 +316,12 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 	return 1;
 }
 
-static bool proceedWithCommit(char *argv, ShaBuffer treeSha)
+static bool proceedWithCommit(char *argv)
 {
-	File tree = File_Create();
 	bool returnValue = false;
 	FileList f, f1;
-	struct diff d;
+	struct diff d = {0, 0, 0, false};
 	String s;
-	d.n = d.d = d.m = 0;
 	s = String_Create();
 	f = FileList_Create();
 	f1 = FileList_Create();
@@ -326,7 +333,7 @@ static bool proceedWithCommit(char *argv, ShaBuffer treeSha)
 		goto EXIT;
 
 	FileList_GetDirectoryConents(f1, "./", true, false);
-
+	d.copyFile = false;
 	FileList_GetDifference(f, f1, differences_commit, &d);
 	if((d.d + d.m) > 0)
 	{
@@ -334,45 +341,103 @@ static bool proceedWithCommit(char *argv, ShaBuffer treeSha)
 		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv);
 		goto EXIT;
 	}
-
-	File_SetFileData(tree,s_getstr(s), true);
-	copyTreeToRepo(tree);
-	memcpy(treeSha, tree->sha, SHA_HASH_LENGTH);
 	returnValue = true;
 EXIT:
-	File_Delete(tree);
 	FileList_Delete(f);
 	FileList_Delete(f1);
 	String_Delete(s);
 	return returnValue;
 }
+
+
 int cmd_commit(int argc, char *argv[])
 {
-	ShaBuffer treeSha, commitSha, prevCommit;
-	Commit c = Commit_Create(), prev = Commit_Create();
 	int returnValue = 1;
-	if(false == proceedWithCommit(argv[0], treeSha))
+	File f = File_Create();
+	String s = String_Create();
+	struct diff d = {0, 0, 0, true};
+	ShaBuffer commitSha, prevCommit, dummy;
+	Commit c = Commit_Create(), prev = Commit_Create();
+	FileList parentTree = FileList_Create(), indexTree = FileList_Create();
+
+	/*check whether all the changes to the working area are added
+	 * into index, if not abort commit*/
+	if(false == proceedWithCommit(argv[0]))
 		goto EXIT;
-	
-	LOG_INFO("tree Sha : %s", treeSha);
-	Commit_SetTree(c, treeSha);
-	if(false == getCurrentCommit(prev, prevCommit))
-	{			
-		LOG_INFO("first commit");
-		Commit_SetParent(c, "\0", "\0");
+
+	if(argc >= 3)
+	{
+		int o;
+		while((o = getopt(argc, argv, "m:")) != -1)
+		{
+			switch(o)
+			{
+				case 'm':
+					Commit_SetMessage(c, optarg);
+					break;
+				default:
+					LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
+					returnValue = 1;
+					goto EXIT;
+			}
+		}
 	}
 	else
 	{
-		LOG_INFO("parent : %s", prevCommit);
-		Commit_SetParent(c, prevCommit, "\0");
+		LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
+		goto EXIT;
 	}
-		
+
+	sha_reset(dummy);
+
+	if(false == getCurrentCommit(prev, prevCommit))
+	{
+		LOG_INFO("first commit.. parent commit is NULL");
+		Commit_SetParent(c, dummy, dummy);
+		FileList_ResetList(parentTree);
+	}
+	else
+	{
+		Commit_SetParent(c, prevCommit, dummy);
+		String_format(s, "%s/%s", SCM_TREE_FOLDER, prev->tree);
+		FileList_DeSerialize(parentTree, s_getstr(s));
+	}
+	/*Now check if any thing has been modified by comparing
+	 * index with the parentTree*/
+	getCurrentIndexFile(s);
+	FileList_DeSerialize(indexTree, s_getstr(s));
+
+	/*Copy the modified files from cache to repo..*/
+	d.copyFile = true;
+	FileList_GetDifference(parentTree, indexTree, differences_commit, &d);
+
+	if((d.n + d.d + d.m) == 0)
+	{
+		LOG_INFO("nothing to comit");
+		goto EXIT;
+	}
+
+	/*save the index file as tree into the tree repo*/
+	getCurrentIndexFile(s);
+	File_SetFileData(f, s_getstr(s), true);
+	copyTreeToRepo(f);
+
+	/*save the commit in the commit repo*/
+	Commit_SetTree(c, f->sha);
 	Commit_SetAuthor(c, "kiransj", "kiransj2@gmail.com");
-	Commit_SetMessage(c, "initial Upload");
 	Commit_WriteCommitFile(c, commitSha);
+
+	/*update the branch commit file*/
 	setCurrentCommit(commitSha);
-	LOG_INFO("commit Sha: %s", commitSha);
+	returnValue = 0;
+	/*print the info*/
+	cmd_info(0, NULL);
 EXIT:
+
+	FileList_Delete(indexTree);
+	FileList_Delete(parentTree);
+	File_Delete(f);
+	String_Delete(s);
 	Commit_Delete(c);
 	Commit_Delete(prev);
 	return returnValue;
@@ -383,17 +448,55 @@ int cmd_info(int argc, char *argv[])
 {
 	ShaBuffer sha;
 	Commit c = Commit_Create();
-	if(true == getCurrentCommit(c, sha))
+	bool flag = false;
+
+	if(argc >= 3)
 	{
-		LOG_INFO("Commit : %s", sha);
-		LOG_INFO("Tree	 : %s", c->tree);
-		LOG_INFO("Parent : %s", c->parent0);
-		LOG_INFO("Author : %s", s_getstr(c->author));
+		int o;
+		while((o = getopt(argc, argv, "c:")) != -1)
+		{
+			switch(o)
+			{
+				case 'c':
+					strcpy((char*)sha, optarg);
+					flag = true;
+					break;
+				default:
+					LOG_ERROR("usage %s %s -c <commitSha>", argv[0], argv[1]);
+					goto EXIT;
+			}
+		}
 	}
+
+	if(true == flag)
+		flag = Commit_ReadCommitFile(c, sha);
 	else
 	{
-		LOG_INFO("commit not set, new repo!!!");
+		flag = getCurrentCommit(c, sha);
+		if(false == flag)
+		{
+			LOG_INFO("commit not set, new repo!!!");
+			goto EXIT;
+		}
+		LOG_INFO("Commit : %s", sha);
 	}
+
+
+	if(true == flag)
+	{
+		struct tm *t;
+		char buffer[64];
+
+		t = localtime(&c->rawtime);
+		strftime(buffer, 64, "%c", t);
+		
+		LOG_INFO("Tree	 : %s", c->tree);
+		LOG_INFO("Parent : %s", c->parent0);
+		LOG_INFO("Time   : %s", buffer);
+		LOG_INFO("Author : %s", s_getstr(c->author));
+		LOG_INFO("\n   %s", s_getstr(c->message));
+	}
+EXIT:
 	Commit_Delete(c);
 	return 0;
 }

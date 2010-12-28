@@ -25,6 +25,7 @@ bool Commit_SetParent(Commit c, const ShaBuffer parent0, const ShaBuffer parent1
 bool Commit_SetMessage(Commit c, const char *message);
 bool Commit_SetAuthor(Commit c, const char *authorName, const char *authorEmailId);
 
+bool WriteCommitFile(Commit s, ShaBuffer commit);
 void PrintCommit(Commit s);
 bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha);
 bool Commit_WriteCommitFile(Commit c, ShaBuffer commitSha);
