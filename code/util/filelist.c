@@ -24,6 +24,10 @@ static void SetListSize(FileList f, const uint32_t size);
 static bool getPositionToInsert(const FileList f, const char* filename, uint32_t * const pos);
 
 
+uint32_t FileList_GetListLength(FileList f)
+{
+	return f->length;
+}
 void FileList_ResetList(FileList f)
 {
 	f->length = 0;
