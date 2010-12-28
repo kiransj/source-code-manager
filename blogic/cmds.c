@@ -30,7 +30,7 @@ int cmd_sha(int argc, char *argv[])
 	{
 		if(true == sha_file(argv[i], sha))
 		{
-			LOG_INFO("%s %s", sha, argv[i]);	
+			LOG_INFO("%s %s", sha, argv[i]);
 		}
 		else
 		{
@@ -69,7 +69,7 @@ int differences(File ref, File n, DifferenceType type, void *data)
 		case FILE_MODIFIED:
 			if(isItFile(s_getstr(n->filename)))
 			{
-				char p[3] = {'\0', '\0', '\0'};
+				char p[3] = {' ', ' ', '\0'};
 				if(ref->mode !=  n->mode)
 					p[0] = 'P';
 				if(S_ISREG(ref->mode))
@@ -79,8 +79,6 @@ int differences(File ref, File n, DifferenceType type, void *data)
 					if(false == sha_compare(ref->sha, n->sha))
 					{
 						p[1] = 'M';
-						if('\0' == p[0])
-						p[0] = ' ';
 					}
 				}
 				if(strlen(p))
@@ -153,9 +151,9 @@ int cmd_add(int argc, char *argv[])
 			File_SetFileData(d, str, true);
 			FileList_InsertFile(f, str, true);
 
-			/* Now insert the folder's so that we have the complete tree
-			 * Exmaple if you insert scm add ./code/src/main.c the following gets inserted
-			 * ./code 
+			/* Add all the folder which leads to the current file
+			 * Example if you insert scm add ./code/src/main.c the following gets inserted
+			 * ./code
 			 * ./code/src
 			 * ./code/src/main.c
 			 *
@@ -177,12 +175,13 @@ int cmd_add(int argc, char *argv[])
 		else if(true == isItFolder(argv[i]))
 		{
 			File *list;
-			uint32_t num = 0, j;
-			FileList_ResetList(f1);		
+			char *str;
+			uint32_t num = 0, j, len;
+			FileList_ResetList(f1);
 			String_strcpy(s1, argv[i]);
 
 			String_NormalizeFolderName(s1);
-			
+
 			LOG_INFO("adding %s/", s_getstr(s1));
 			if(strcmp(s_getstr(s1), ".") != 0)
 				FileList_InsertFile(f, s_getstr(s1), false);
@@ -200,11 +199,23 @@ int cmd_add(int argc, char *argv[])
 				if(FileList_Find(f, s_getstr(list[j]->filename), &pos))
 					copyFileToRepo(FileList_GetListDetails(f, &temp)[pos]);
 			}
+			/*Add all the folders which leads to current folder*/
+			str = (char*)s_getstr(s1);
+			len = String_strlen(s1);
+			while(len > 2)
+			{
+				while((len > 2) && str[len--] != '/');
+				if(len > 2)
+				{
+					str[len+1] = 0;
+					FileList_InsertFile(f, str, false);
+				}
+			}
 		}
 	}
 	/*Rewrite the index file*/
 	FileList_Serialize(f, s_getstr(indexfile));
-EXIT:	
+EXIT:
 	FileList_Delete(f);
 	FileList_Delete(f1);
 	String_Delete(indexfile);
@@ -226,7 +237,7 @@ int cmd_ls(int argc, char *argv[])
 		{
 			switch(c)
 			{
-				case 'r':	
+				case 'r':
 					recursive = true;
 					break;
 				case 'l':
@@ -243,11 +254,11 @@ int cmd_ls(int argc, char *argv[])
 	if(false == getCurrentIndexFile(indexfile))
 	{
 		returnValue = 1;
-		goto EXIT;	
+		goto EXIT;
 	}
 	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
 		FileList_PrintList(f, recursive, longlist);
-EXIT:	
+EXIT:
 	String_Delete(indexfile);
 	FileList_Delete(f);
 	return returnValue;
