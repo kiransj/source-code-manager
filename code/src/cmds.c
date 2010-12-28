@@ -169,7 +169,7 @@ int cmd_add(int argc, char *argv[])
 			}
 
 			/*copy the file to repo..*/
-			copyFileToRepo(d);
+			copyFileToCache(d);
 			File_Delete(d);
 		}
 		else if(true == isItFolder(argv[i]))
@@ -197,7 +197,7 @@ int cmd_add(int argc, char *argv[])
 
 				/*copy the file to repo..*/
 				if(FileList_Find(f, s_getstr(list[j]->filename), &pos))
-					copyFileToRepo(FileList_GetListDetails(f, &temp)[pos]);
+					copyFileToCache(FileList_GetListDetails(f, &temp)[pos]);
 			}
 			/*Add all the folders which leads to current folder*/
 			str = (char*)s_getstr(s1);

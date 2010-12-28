@@ -1,7 +1,7 @@
 CC=gcc
 INCLUDE_DIR =inc 
 CC_FLAG=-Wall -g
-SRC=src blogic .
+SRC=code/src code/util .
 OBJ_FLAGS=-Wall -c 
 LDFLAGS +=-lz
 EXECUTABLES=a.out

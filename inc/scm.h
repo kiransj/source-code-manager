@@ -9,6 +9,11 @@
 #define SCM_BRANCH_FOLDER	".scm/branch"
 #define SCM_OBJECTS_FOLDER	".scm/obj"
 
+#define SCM_BLOB_FOLDER		".scm/obj/blob"
+#define SCM_COMMIT_FOLDER	".scm/obj/commit"
+#define SCM_TREE_FOLDER		".scm/obj/tree"
+
+#define SCM_BRANCH_CACHE_FOLDER	"cache"
 
 #define SCM_HEAD_FILE		".scm/HEAD"
 #define SCM_INDEX_FILENAME	"index"

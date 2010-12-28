@@ -6,7 +6,7 @@
 #include "filelist.h"
 
 static bool setBranchInHEAD(const char *branchName)
-{	
+{
 	int fd, ch;
 	bool returnValue = false;
 	String s = String_Create();
@@ -29,7 +29,7 @@ static bool setBranchInHEAD(const char *branchName)
 	write(fd, &ch, 1);
 	close(fd);
 	returnValue = true;
-EXIT:	
+EXIT:
 	String_Delete(s);
 	return returnValue;
 }
@@ -63,7 +63,12 @@ int cmd_init(int argc, char *argv[])
 {
 	int i;
 	String s;
-	char *folders[] = { SCM_FOLDER, SCM_BRANCH_FOLDER, SCM_OBJECTS_FOLDER};
+	char *folders[] = { SCM_FOLDER,
+						SCM_BRANCH_FOLDER,
+						SCM_OBJECTS_FOLDER,
+						SCM_BLOB_FOLDER,
+						SCM_COMMIT_FOLDER,
+						SCM_TREE_FOLDER};
 	const int size = sizeof(folders)/sizeof(folders[0]);
 
 	if(true == isItFolder(".scm"))
@@ -92,9 +97,17 @@ int cmd_init(int argc, char *argv[])
 		return 1;
 	}
 
+	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, SCM_DEFAULT_BRANCH, SCM_BRANCH_CACHE_FOLDER);
+	/*Create the branch folder*/
+	if(0 != mkdir(s_getstr(s), SCM_FOLDER_PERMISSION))
+	{
+		LOG_ERROR("mkdir('%s') failed(%d)", s_getstr(s), errno);
+		String_Delete(s);
+		return 1;
+	}
 	/*set the branch name in 'HEAD' file*/
 	setBranchInHEAD(SCM_DEFAULT_BRANCH);
-		
+
 	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, SCM_DEFAULT_BRANCH, SCM_INDEX_FILENAME);
 	/*Create a empty index file*/
 	if(false == CreateEmptyIndexFile(s_getstr(s)))
@@ -105,5 +118,5 @@ int cmd_init(int argc, char *argv[])
 	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, SCM_DEFAULT_BRANCH, SCM_COMMIT_FILENAME);
 	createEmptyCommitFile(s_getstr(s));
 	String_Delete(s);
-	return 0;	
+	return 0;
 }
