@@ -332,6 +332,11 @@ static bool proceedWithCommit(char *argv)
 	if(false == FileList_DeSerialize(f, s_getstr(s)))
 		goto EXIT;
 
+	if(FileList_GetListLength(f) == 0)
+	{
+		LOG_ERROR("index file is empty!!!");
+		goto EXIT;
+	}
 	FileList_GetDirectoryConents(f1, "./", true, false);
 	d.copyFile = false;
 	FileList_GetDifference(f, f1, differences_commit, &d);
@@ -490,7 +495,7 @@ int cmd_info(int argc, char *argv[])
 		t = localtime(&c->rawtime);
 		strftime(buffer, 64, "%c", t);
 		
-		LOG_INFO("Tree	 : %s", c->tree);
+		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
 		LOG_INFO("Time   : %s", buffer);
 		LOG_INFO("Author : %s", s_getstr(c->author));
