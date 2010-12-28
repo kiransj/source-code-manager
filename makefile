@@ -27,7 +27,7 @@ ${OBJS_FOLDER}:
 	mkdir -p ${foreach s, ${SRC}, ${OBJS_FOLDER}/${s}}
 
 ${EXECUTABLES}: ${OBJS_FOLDER} ${OBJECTS} ${INCLUDE_FILES}
-	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R 
+	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R --c-kinds=+p --fields=+S
 
 #if any header files gets modified compile the whole project again
 .objs/%.o: %.c ${INCLUDE_FILES}

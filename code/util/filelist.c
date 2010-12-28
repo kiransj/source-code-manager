@@ -307,7 +307,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 {
 	int temp;
 	bool returnValue = false;
-	uint32_t refpos, pos;
+	uint32_t refpos, pos, ret;
 	refpos = pos = 0;
 	if(NULL == function)
 	{
@@ -319,7 +319,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		temp = String_compare(reference->list[refpos]->filename, newlist->list[pos]->filename);
 		if(0 == temp)
 		{
-			if(reference->list[refpos]->mtime != newlist->list[pos]->mtime)
+			if((reference->list[refpos]->mode != newlist->list[pos]->mode) || (reference->list[refpos]->mtime != newlist->list[pos]->mtime))
 			{
 				function(reference->list[refpos], newlist->list[pos], FILE_MODIFIED, data);
 			}
@@ -330,9 +330,10 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		{
 			/*If this filename exist in the reference list and not in the other
 			 * it means this file is deleted*/
-			function(reference->list[refpos], NULL, FILE_DELETED, data);
+			ret = function(reference->list[refpos], NULL, FILE_DELETED, data);
+
 			/*if its a folder then skip the entries of the folder*/
-			if(S_ISDIR(reference->list[refpos]->mode))
+			if((1 != ret) && S_ISDIR(reference->list[refpos]->mode))
 			{
 				int i = refpos++;
 				String_strcat(reference->list[i]->filename, "/");
@@ -349,10 +350,10 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		{
 			/*If this filename doesn't exist in the reference list and is present in the other
 			 * it means this file is a new one*/
-			function(NULL, newlist->list[pos], FILE_NEW, data);
+			ret = function(NULL, newlist->list[pos], FILE_NEW, data);
 
 			/*if its a folder then skip the entries of the folder*/
-			if(S_ISDIR(newlist->list[pos]->mode))
+			if((1 != ret) && S_ISDIR(newlist->list[pos]->mode))
 			{
 				int i = pos++;
 				String_strcat(newlist->list[i]->filename, "/");
@@ -371,9 +372,9 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 	/*the remaining elements in the new list are new one's*/
 	while(pos < newlist->length)
 	{
-		function(NULL, newlist->list[pos], FILE_NEW, data);
+		ret = function(NULL, newlist->list[pos], FILE_NEW, data);
 		
-		if(S_ISDIR(newlist->list[pos]->mode))
+		if((1 != ret) && S_ISDIR(newlist->list[pos]->mode))
 		{
 			int i = pos++;
 			String_strcat(newlist->list[i]->filename, "/");
@@ -389,8 +390,8 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 
 	while(refpos < reference->length)
 	{
-		function(reference->list[refpos], NULL, FILE_DELETED, data);
-		if(S_ISDIR(reference->list[refpos]->mode))
+		ret = function(reference->list[refpos], NULL, FILE_DELETED, data);
+		if((1 != ret) && S_ISDIR(reference->list[refpos]->mode))
 		{
 			int i = refpos++;
 			String_strcat(reference->list[i]->filename, "/");

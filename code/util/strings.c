@@ -16,19 +16,19 @@ struct _string
 void String_SetSize(String s, const uint32_t size)
 {
 	if(s->strSize < size)
-	{		
+	{
 		s->str = (char*)XREALLOC(s->str, size);
 		memset(s->str+s->strSize, 0, size - s->strSize);
 		s->strSize = size;
 	}
-	
+
 	return;
 }
 
 String String_Create(void)
 {
 	String s;
-	s = (String)XMALLOC(sizeof(struct _string));	
+	s = (String)XMALLOC(sizeof(struct _string));
 	s->strLen = 0;
 	s->strSize = MIN_STRING_SIZE;
 	s->str = (char*)XMALLOC(s->strSize);
@@ -129,13 +129,13 @@ void String_DebugPrint(const String s)
 int String_format(String s, const char *format, ...)
 {
 	int len = MIN_STRING_SIZE;
-	va_list v;	
+	va_list v;
 	do
-	{		
+	{
 		va_start(v, format);
 		String_SetSize(s, len+MIN_STRING_SIZE);
-		len = vsnprintf(s->str, s->strSize, format, v);	
-		va_end(v);		
+		len = vsnprintf(s->str, s->strSize, format, v);
+		va_end(v);
 	}
 	while(len >= s->strSize);
 	s->strLen = len+1;
@@ -143,7 +143,7 @@ int String_format(String s, const char *format, ...)
 }
 
 /*Converts the foldername to the following format
- * ./<foldername>/ 
+ * ./<foldername>/
  * */
 void String_NormalizeFolderName(String s)
 {
@@ -152,7 +152,7 @@ void String_NormalizeFolderName(String s)
 	while((n > 0) && (s->str[--n] == '/'));
 	s->str[n+1] = 0;
 	s->strLen = n+1;
-	
+
 	if((strcmp(s->str, ".") != 0) && (strncmp(s->str, "./", 2) != 0))
 	{
 		memmove(s->str+2, s->str, s->strLen);
@@ -160,7 +160,7 @@ void String_NormalizeFolderName(String s)
 		s->str[1] = '/';
 		s->strLen = s->strLen+2;
 		s->str[s->strLen] = 0;
-	}	
+	}
 	return;
 }
 

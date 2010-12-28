@@ -10,6 +10,8 @@
 #include "common.h"
 #include "scm.h"
 #include "obj.h"
+#include "commit.h"
+
 int cmd_version(int argc, char *argv[])
 {
 	LOG_INFO("%s Version 0.01", argv[0]);
@@ -53,7 +55,7 @@ int cmd_branch(int argc, char *argv[])
 	return 0;
 }
 
-int differences(File ref, File n, DifferenceType type, void *data)
+static int differences(File ref, File n, DifferenceType type, void *data)
 {
 	bool folder = false;
 	switch(type)
@@ -151,6 +153,9 @@ int cmd_add(int argc, char *argv[])
 			File_SetFileData(d, str, true);
 			FileList_InsertFile(f, str, true);
 
+			/*copy the file to repo..*/
+			copyFileToCache(d);
+			File_Delete(d);
 			/* Add all the folder which leads to the current file
 			 * Example if you insert scm add ./code/src/main.c the following gets inserted
 			 * ./code
@@ -167,10 +172,6 @@ int cmd_add(int argc, char *argv[])
 					FileList_InsertFile(f, str, false);
 				}
 			}
-
-			/*copy the file to repo..*/
-			copyFileToCache(d);
-			File_Delete(d);
 		}
 		else if(true == isItFolder(argv[i]))
 		{
@@ -211,6 +212,12 @@ int cmd_add(int argc, char *argv[])
 					FileList_InsertFile(f, str, false);
 				}
 			}
+		}
+		else
+		{
+			LOG_ERROR("FATAL: cmd_add() '%s' is neither a file nor a folder", argv[i]);
+			returnValue = 1;
+			goto EXIT;
 		}
 	}
 	/*Rewrite the index file*/
@@ -262,4 +269,131 @@ EXIT:
 	String_Delete(indexfile);
 	FileList_Delete(f);
 	return returnValue;
+}
+
+struct diff
+{
+	int n, d, m;
+};
+static int differences_commit(File ref, File n, DifferenceType type, void *data)
+{
+	struct diff *p = (struct diff*)data;
+	switch(type)
+	{
+		case FILE_NEW:
+			p->n++;
+			break;
+		case FILE_DELETED:
+			p->d++;
+			break;
+		case FILE_MODIFIED:
+
+			if(ref->mode !=  n->mode)
+				p->m++;
+			else if(S_ISREG(ref->mode))
+			{
+				if((strlen((char*)n->sha)+1) != SHA_HASH_LENGTH)
+					sha_file(s_getstr(n->filename), n->sha);
+				if(false == sha_compare(ref->sha, n->sha))
+				{
+					p->m++;
+				}
+			}
+			break;
+		case FILE_LAST_VALUE:
+		default:
+			break;
+	}
+	return 1;
+}
+
+static bool proceedWithCommit(char *argv, ShaBuffer treeSha)
+{
+	File tree = File_Create();
+	bool returnValue = false;
+	FileList f, f1;
+	struct diff d;
+	String s;
+	d.n = d.d = d.m = 0;
+	s = String_Create();
+	f = FileList_Create();
+	f1 = FileList_Create();
+
+	if(false == getCurrentIndexFile(s))
+		goto EXIT;
+
+	if(false == FileList_DeSerialize(f, s_getstr(s)))
+		goto EXIT;
+
+	FileList_GetDirectoryConents(f1, "./", true, false);
+
+	FileList_GetDifference(f, f1, differences_commit, &d);
+	if((d.d + d.m) > 0)
+	{
+		LOG_ERROR("changes not updated, run `%s status` to view the changes", argv);
+		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv);
+		goto EXIT;
+	}
+
+	File_SetFileData(tree,s_getstr(s), true);
+	copyTreeToRepo(tree);
+	memcpy(treeSha, tree->sha, SHA_HASH_LENGTH);
+	returnValue = true;
+EXIT:
+	File_Delete(tree);
+	FileList_Delete(f);
+	FileList_Delete(f1);
+	String_Delete(s);
+	return returnValue;
+}
+int cmd_commit(int argc, char *argv[])
+{
+	ShaBuffer treeSha, commitSha, prevCommit;
+	Commit c = Commit_Create(), prev = Commit_Create();
+	int returnValue = 1;
+	if(false == proceedWithCommit(argv[0], treeSha))
+		goto EXIT;
+	
+	LOG_INFO("tree Sha : %s", treeSha);
+	Commit_SetTree(c, treeSha);
+	if(false == getCurrentCommit(prev, prevCommit))
+	{			
+		LOG_INFO("first commit");
+		Commit_SetParent(c, "\0", "\0");
+	}
+	else
+	{
+		LOG_INFO("parent : %s", prevCommit);
+		Commit_SetParent(c, prevCommit, "\0");
+	}
+		
+	Commit_SetAuthor(c, "kiransj", "kiransj2@gmail.com");
+	Commit_SetMessage(c, "initial Upload");
+	Commit_WriteCommitFile(c, commitSha);
+	setCurrentCommit(commitSha);
+	LOG_INFO("commit Sha: %s", commitSha);
+EXIT:
+	Commit_Delete(c);
+	Commit_Delete(prev);
+	return returnValue;
+}
+
+
+int cmd_info(int argc, char *argv[])
+{
+	ShaBuffer sha;
+	Commit c = Commit_Create();
+	if(true == getCurrentCommit(c, sha))
+	{
+		LOG_INFO("Commit : %s", sha);
+		LOG_INFO("Tree	 : %s", c->tree);
+		LOG_INFO("Parent : %s", c->parent0);
+		LOG_INFO("Author : %s", s_getstr(c->author));
+	}
+	else
+	{
+		LOG_INFO("commit not set, new repo!!!");
+	}
+	Commit_Delete(c);
+	return 0;
 }

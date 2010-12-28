@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <malloc.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -242,4 +244,43 @@ bool decompressAndSave(const char *sourceFile, const char *destFile, int mode)
     (void)inflateEnd(&strm);
     return ret == Z_STREAM_END ? true : false;
 }
+bool copyFile(const char *source, const char *destination, const int mode)
+{
+	bool returnValue = false;
+	int fd_s, fd_d, len;
+	char buffer[MAX_BUFFER_SIZE];
 
+	fd_s = open(source, O_RDONLY);
+	if(0 > fd_s)
+	{
+		LOG_ERROR("open(%s) failed(%d)", source, errno);
+		goto EXIT;
+	}
+	fd_d = open(destination, O_CREAT | O_TRUNC | O_WRONLY, mode);
+	if(0 > fd_d)
+	{
+		LOG_ERROR("open(%s) failed(%d)", destination, errno);
+		close(fd_s);
+		goto EXIT;
+	}
+
+	while((len = read(fd_s, buffer, MAX_BUFFER_SIZE)) != 0)
+	{
+		if(len != write(fd_d, buffer, len))
+		{
+			LOG_ERROR("write() failed(%d) to write specified number of bytes ", errno);
+			returnValue = false;
+			close(fd_s);
+			close(fd_d);
+			goto EXIT;
+		}
+	}
+
+	returnValue = true;
+	close(fd_s);
+	close(fd_d);
+
+	chmod(destination, mode); /*Set the mode of the files..*/
+EXIT:
+	return returnValue;
+}

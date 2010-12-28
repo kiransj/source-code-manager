@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
 								{"status",			cmd_status	, "show's current status wrt to index file"},
 								{"add",			    cmd_add		, "adds file's or folders into the index file"},
 								{"ls",			    cmd_ls		, "prints the file's"},
+								{"commit",			cmd_commit	, "commits the current changes into repo"},
+								{"info",			cmd_info	, "info"},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 
