@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 								{"ls",			    cmd_ls		, "prints the file's"},
 								{"commit",			cmd_commit	, "commits the current changes into repo"},
 								{"info",			cmd_info	, "info"},
+								{"rm",				cmd_rm   	, "remove file from list"},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 

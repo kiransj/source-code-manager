@@ -231,6 +231,66 @@ EXIT:
 }
 
 
+int cmd_rm(int argc, char *argv[])
+{
+	FileList f;
+	String indexfile, s;
+	bool recursive = false; 
+	int returnValue = 1;
+	if(argc == 2)
+	{
+		LOG_ERROR("usage %s %s <filenames |  foldernames>", argv[0], argv[1]);
+		return 1;
+	}
+	indexfile = String_Create();
+	s = String_Create();				
+	f = FileList_Create();
+
+	if(false == getCurrentIndexFile(indexfile))
+	{
+		returnValue = 1;
+		goto EXIT;
+	}
+
+	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+	{
+		int i;
+		for(i = 2; i < argc; i++)
+		{
+
+			if(argv[i][0] != '-')
+			{
+				LOG_INFO("Deleting %s", argv[i]);
+				String_strcpy(s, argv[i]);
+				String_NormalizeFolderName(s);
+				if(false == FileList_RemoveFile(f,s_getstr(s), recursive)) 
+				{
+					goto EXIT;					
+				}
+			}
+			else
+			{
+				if((argv[i][1] == 'r') && argv[i][2] == '\0')
+					recursive = true;
+				else
+				{
+					
+					LOG_ERROR("usage %s %s -r <filenames |  foldernames>", argv[0], argv[1]);
+					goto EXIT;
+				}
+			}
+		}
+
+		/*Rewrite the index file, without the deleted file*/
+		FileList_Serialize(f, s_getstr(indexfile));
+		returnValue = 0;
+	}
+EXIT:	
+	FileList_Delete(f);
+	String_Delete(indexfile);
+	String_Delete(s);
+	return returnValue;
+}
 int cmd_ls(int argc, char *argv[])
 {
 	int returnValue = 0;
@@ -251,7 +311,7 @@ int cmd_ls(int argc, char *argv[])
 					longlist = true;
 					break;
 				default:
-					LOG_ERROR("usage %c %s %s -l \"long list\" -r \"recursive\"", c, argv[0], argv[1]);
+					LOG_ERROR("usage %s %s -l \"long list\" -r \"recursive\"", argv[0], argv[1]);
 					returnValue = 1;
 					goto EXIT;
 			}
@@ -332,10 +392,15 @@ static bool proceedWithCommit(char *argv)
 	if(false == FileList_DeSerialize(f, s_getstr(s)))
 		goto EXIT;
 
+	if(FileList_GetListLength(f) == 0)
+	{
+		LOG_ERROR("index file is empty!!!");
+		goto EXIT;
+	}
 	FileList_GetDirectoryConents(f1, "./", true, false);
 	d.copyFile = false;
 	FileList_GetDifference(f, f1, differences_commit, &d);
-	if((d.d + d.m) > 0)
+	if(d.m > 0)
 	{
 		LOG_ERROR("changes not updated, run `%s status` to view the changes", argv);
 		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv);
@@ -368,18 +433,25 @@ int cmd_commit(int argc, char *argv[])
 	if(argc >= 3)
 	{
 		int o;
+		bool flag = false;
 		while((o = getopt(argc, argv, "m:")) != -1)
 		{
 			switch(o)
 			{
 				case 'm':
 					Commit_SetMessage(c, optarg);
+					flag = true;
 					break;
 				default:
 					LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
 					returnValue = 1;
 					goto EXIT;
 			}
+		}
+		if(false == flag)
+		{
+			LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
+			goto EXIT;
 		}
 	}
 	else
@@ -490,11 +562,14 @@ int cmd_info(int argc, char *argv[])
 		t = localtime(&c->rawtime);
 		strftime(buffer, 64, "%c", t);
 		
-		LOG_INFO("Tree	 : %s", c->tree);
+		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
-		LOG_INFO("Time   : %s", buffer);
+		if(0 != strlen((char*)c->parent1))
+		LOG_INFO("Parent1: %s", c->parent1);
+		LOG_INFO("Date   : %s", buffer);
 		LOG_INFO("Author : %s", s_getstr(c->author));
 		LOG_INFO("\n   %s", s_getstr(c->message));
+		LOG_INFO(" ");
 	}
 EXIT:
 	Commit_Delete(c);

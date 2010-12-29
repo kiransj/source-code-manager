@@ -13,6 +13,8 @@ File File_Create(void)
 {
 	File f = (File)XMALLOC(sizeof(struct _file));
 	f->filename = String_Create();
+
+	f->deleted = false;
 	f->mode = f->mtime = f->size = 0;
 	sha_reset(f->sha);
 	return f;

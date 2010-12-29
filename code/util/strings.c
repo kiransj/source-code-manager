@@ -143,7 +143,7 @@ int String_format(String s, const char *format, ...)
 }
 
 /*Converts the foldername to the following format
- * ./<foldername>/
+ * ./<foldername>
  * */
 void String_NormalizeFolderName(String s)
 {
