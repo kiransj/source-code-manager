@@ -79,7 +79,7 @@ bool Commit_SetMessage(Commit c, const  char *message)
 #define INT_SIZE	sizeof(uint32_t)
 bool Commit_WriteCommitFile(Commit c, ShaBuffer commitSha)
 {
-	uint32_t fd, temp;
+	uint32_t fd, temp, dummy;
 	bool returnValue = false;
 	String s = String_Create();
 
@@ -102,36 +102,36 @@ bool Commit_WriteCommitFile(Commit c, ShaBuffer commitSha)
 
 	/*Write the object identification Code..*/
 	temp = htonl(OBJECT_COMMIT_FILE);
-	write(fd, &temp, INT_SIZE);
+	dummy = write(fd, &temp, INT_SIZE);
 
 	/*time */
 	temp = htonl(c->rawtime);
-	write(fd, &temp, INT_SIZE);
+	dummy = write(fd, &temp, INT_SIZE);
 
 	/*size of tree SHA*/
 	temp = htonl(strlen((char*)c->tree)+1);
-	write(fd, &temp, INT_SIZE);
-	write(fd, c->tree, ntohl(temp));
+	dummy = write(fd, &temp, INT_SIZE);
+	dummy = write(fd, c->tree, ntohl(temp));
 
 	/*size of parent0*/
 	temp = htonl(strlen((char*)c->parent0)+1);
-	write(fd, &temp, INT_SIZE);
-	write(fd, c->parent0, ntohl(temp));
+	dummy = write(fd, &temp, INT_SIZE);
+	dummy = write(fd, c->parent0, ntohl(temp));
 
 	/*size of parent1*/
 	temp = htonl(strlen((char*)c->parent1)+1);
-	write(fd, &temp, INT_SIZE);
-	write(fd, c->parent1, ntohl(temp));
+	dummy = write(fd, &temp, INT_SIZE);
+	dummy = write(fd, c->parent1, ntohl(temp));
 
 	/*length of author*/
 	temp = htonl(String_strlen(c->author)+1);
-	write(fd, &temp, INT_SIZE);
-	write(fd, s_getstr(c->author), ntohl(temp));
+	dummy = write(fd, &temp, INT_SIZE);
+	dummy = write(fd, s_getstr(c->author), ntohl(temp));
 
 	/*length of message*/
 	temp = htonl(String_strlen(c->message)+1);
-	write(fd, &temp, INT_SIZE);
-	write(fd, s_getstr(c->message), ntohl(temp));
+	dummy = write(fd, &temp, INT_SIZE);
+	dummy = write(fd, s_getstr(c->message), ntohl(temp));
 	returnValue = true;
 	close(fd);
 EXIT:
@@ -143,7 +143,7 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 {
 	String s = String_Create();
 	bool returnValue = false;
-	uint32_t fd, len = strlen((char*)commitSha), temp;
+	uint32_t fd, len = strlen((char*)commitSha), temp, dummy;
 	if(len != SHA_HASH_LENGTH)
 	{
 		LOG_ERROR("Commit_ReadCommitFile() shaLength %d != %d", len, SHA_HASH_LENGTH);
@@ -160,7 +160,7 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 
 
 	/*read the object identification Code and check it*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	if(temp != OBJECT_COMMIT_FILE)
 	{
@@ -170,35 +170,35 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 	}
 
 	/*read the time*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	c->rawtime = ntohl(temp);
 
 	/*read the tree Sha*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
-	read(fd, c->tree, temp);
+	dummy = read(fd, c->tree, temp);
 
 	/*read parent0*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
-	read(fd, c->parent0, temp);
+	dummy = read(fd, c->parent0, temp);
 
 	/*read parent1*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
-	read(fd, c->parent1, temp);
+	dummy = read(fd, c->parent1, temp);
 
 	/*read the author name and EmailId*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	String_SetSize(c->author,temp+10);
-	read(fd, (void*)s_getstr(c->author), temp);
+	dummy = read(fd, (void*)s_getstr(c->author), temp);
 	
 	/*read the message*/
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
 	String_SetSize(c->message,temp+10);
-	read(fd, (void*)s_getstr(c->message), temp);
+	dummy = read(fd, (void*)s_getstr(c->message), temp);
 
 	returnValue = true;
 	close(fd);
