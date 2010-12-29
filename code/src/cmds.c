@@ -332,7 +332,7 @@ int cmd_ls(int argc, char *argv[])
 	if(argc >= 3)
 	{
 		int c;
-		while((c = getopt(argc, argv, "rl")) != -1)
+		while((c = getopt(argc, argv, "rhl")) != -1)
 		{
 			switch(c)
 			{
@@ -342,9 +342,16 @@ int cmd_ls(int argc, char *argv[])
 				case 'l':
 					longlist = true;
 					break;
+				case 'h':
+					LOG_INFO("usage %s %s [-l \"long list\"] [-r \"recursive\"]", argv[0], argv[1]);
+					returnValue = 0;
+					goto EXIT;
 				default:
 					LOG_ERROR("usage %s %s -l \"long list\" -r \"recursive\"", argv[0], argv[1]);
 					returnValue = 1;
+					LOG_ERROR("usage %s %s -l \"long list\" -r \"recursive\"", argv[0], argv[1]);
+					returnValue = 1;
+					goto EXIT;
 					goto EXIT;
 			}
 		}
@@ -457,16 +464,11 @@ int cmd_commit(int argc, char *argv[])
 	Commit c = Commit_Create(), prev = Commit_Create();
 	FileList parentTree = FileList_Create(), indexTree = FileList_Create();
 
-	/*check whether all the changes to the working area are added
-	 * into index, if not abort commit*/
-	if(false == proceedWithCommit(argv[0]))
-		goto EXIT;
-
 	if(argc >= 3)
 	{
 		int o;
 		bool flag = false;
-		while((o = getopt(argc, argv, "m:")) != -1)
+		while((o = getopt(argc, argv, "hm:")) != -1)
 		{
 			switch(o)
 			{
@@ -474,6 +476,11 @@ int cmd_commit(int argc, char *argv[])
 					Commit_SetMessage(c, optarg);
 					flag = true;
 					break;
+				case 'h':		
+					LOG_INFO("usage %s %s -m <msg>", argv[0], argv[1]);
+					returnValue = 0;
+					goto EXIT;
+
 				default:
 					LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
 					returnValue = 1;
@@ -491,6 +498,12 @@ int cmd_commit(int argc, char *argv[])
 		LOG_ERROR("usage %s %s -m <msg>", argv[0], argv[1]);
 		goto EXIT;
 	}
+
+	/*check whether all the changes to the working area are added
+	 * into index, if not abort commit*/
+	if(false == proceedWithCommit(argv[0]))
+		goto EXIT;
+
 
 	sha_reset(dummy);
 
@@ -557,7 +570,7 @@ int cmd_info(int argc, char *argv[])
 	if(argc >= 3)
 	{
 		int o;
-		while((o = getopt(argc, argv, "c:")) != -1)
+		while((o = getopt(argc, argv, "hc:")) != -1)
 		{
 			switch(o)
 			{
@@ -565,8 +578,11 @@ int cmd_info(int argc, char *argv[])
 					strcpy((char*)sha, optarg);
 					flag = true;
 					break;
+				case 'h':		
+					LOG_INFO("usage %s %s [-c <commitSha>]\n Default prints the current commit information", argv[0], argv[1]);
+					goto EXIT;
 				default:
-					LOG_ERROR("usage %s %s -c <commitSha>", argv[0], argv[1]);
+					LOG_ERROR("usage %s %s [-c <commitSha>]", argv[0], argv[1]);
 					goto EXIT;
 			}
 		}
