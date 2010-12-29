@@ -14,7 +14,8 @@
 
 int cmd_version(int argc, char *argv[])
 {
-	LOG_INFO("%s Version 0.01", argv[0]);
+	LOG_INFO("%s Version %s", argv[0], SCM_VERSION_NUMBER);
+
 	return 0;
 }
 
