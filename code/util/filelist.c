@@ -16,6 +16,7 @@ struct _filelist
 {
 	File *list;
 	uint32_t length, listSize;
+	uint32_t numOfdeletedFiles;
 };
 
 
@@ -31,6 +32,7 @@ uint32_t FileList_GetListLength(FileList f)
 void FileList_ResetList(FileList f)
 {
 	f->length = 0;
+	f->numOfdeletedFiles = 0;
 }
 
 FileList FileList_Create(void)
@@ -40,6 +42,7 @@ FileList FileList_Create(void)
 	f = (FileList)XMALLOC(sizeof(FileList));
 	f->listSize = MIN_LIST_SIZE;
 	f->length = 0;
+	f->numOfdeletedFiles = 0;
 
 	f->list = (File*)XMALLOC(sizeof(File) * f->listSize);
 	for(i = 0; i < f->listSize; i++)
@@ -118,6 +121,46 @@ File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 	return f->list;
 }
 
+bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive) 
+{
+	bool returnValue = false;
+	uint32_t pos = 0;
+	if(true == FileList_Find(f, filename, &pos))
+	{	
+		if(S_ISDIR(f->list[pos]->mode))
+		{
+			if(recursive)
+			{
+				int i = pos+1, n = String_strlen(f->list[pos]->filename);
+				f->list[pos]->deleted = true;
+				f->numOfdeletedFiles++;
+				while((i < f->length) && (0 == strncmp(s_getstr(f->list[i]->filename), s_getstr(f->list[pos]->filename), n)))
+				{
+					f->list[i]->deleted = true;
+					f->numOfdeletedFiles++;
+					i++;
+				}
+				returnValue = true;
+			}
+			else
+			{
+				LOG_ERROR("FileList_RemoveFile: '%s' is a folder, use recursive option to delete folder", filename);
+			}
+		}
+		else
+		{
+			f->list[pos]->deleted = true;
+			f->numOfdeletedFiles++;
+			returnValue = true;
+		}
+
+	}
+	else
+	{
+		LOG_ERROR("FileList_DeleteFile: file '%s' not found in the list", filename);
+	}
+	return returnValue;
+}
 /*inerts the file and returns the pos where the file was inserted.
  * If the file is already present then it updates the list and returns
  * the pos of the file*/
@@ -492,16 +535,19 @@ bool FileList_Serialize(FileList f, const char *filename)
 	write(fd, &temp, INT_SIZE);
 
 	/*Write the number of files&folders*/
-	temp = htonl(f->length);
+	temp = htonl(f->length - f->numOfdeletedFiles);
 	write(fd, &temp, INT_SIZE);
 
 	for(i = 0 ; i < f->length ; i++)
 	{
-		int length;
-		length = File_Serialize(f->list[i], buffer, MAX_BUFFER_SIZE);
-		temp = htonl(length);
-		write(fd, &temp, INT_SIZE);
-		write(fd, buffer, length);
+		if(false == f->list[i]->deleted)
+		{
+			int length;
+			length = File_Serialize(f->list[i], buffer, MAX_BUFFER_SIZE);
+			temp = htonl(length);
+			write(fd, &temp, INT_SIZE);
+			write(fd, buffer, length);
+		}
 	}
 	close(fd);
 	return true;

@@ -9,4 +9,5 @@ int cmd_add(int argc, char *argv[]);
 int cmd_ls(int argc, char *argv[]);
 int cmd_commit(int argc, char *argv[]);
 int cmd_info(int argc, char *argv[]);
+int cmd_rm(int argc, char *argv[]);
 #endif
