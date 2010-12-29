@@ -26,7 +26,7 @@ static bool setBranchInHEAD(const char *branchName)
 	}
 	/*write a new line character*/
 	ch = '\n';
-	write(fd, &ch, 1);
+	ch = write(fd, &ch, 1);
 	close(fd);
 	returnValue = true;
 EXIT:
@@ -47,7 +47,7 @@ static bool CreateEmptyIndexFile(const char *path)
 
 static bool createEmptyCommitFile(const char *path)
 {
-	int fd;
+	int fd, dummy;
 	char *str = "\0";
 	fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, SCM_HEAD_FILE_PERMISSION);
 	if(fd < 0)
@@ -55,7 +55,7 @@ static bool createEmptyCommitFile(const char *path)
 		LOG_ERROR("createEmptyCommitFile: open('%s') failed(%d)", path, errno);
 		return false;
 	}
-	write(fd, str, 1);
+	dummy = write(fd, str, 1);
 	close(fd);
 	return true;
 }

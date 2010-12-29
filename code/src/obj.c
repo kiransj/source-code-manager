@@ -25,7 +25,8 @@ bool getBranchName(String const s)
 		LOG_ERROR("fatal: getBranchName(): unable to open HEAD file");
 		goto EXIT;
 	}
-	fscanf(fp, "%s %s", type, branchName);
+	if(2 != fscanf(fp, "%s %s", type, branchName))
+		goto EXIT;
 	if(NULL == strstr(type, "branch:"))
 	{
 		LOG_ERROR("getBranchName() HEAD file format unrecogized!!");
@@ -70,7 +71,7 @@ EXIT:
 
 bool setCurrentCommit(ShaBuffer currentCommit)
 {
-	int fd;
+	int fd, dummy;
 	bool returnValue = false;
 	String s = String_Create(), s1 = String_Create();
 
@@ -83,7 +84,7 @@ bool setCurrentCommit(ShaBuffer currentCommit)
 	if(fd > 0)
 	{
 		String_format(s, "%s\n", currentCommit);
-		write(fd, s_getstr(s), String_strlen(s));
+		dummy = write(fd, s_getstr(s), String_strlen(s));
 		close(fd);
 		returnValue = true;
 	}
@@ -108,7 +109,8 @@ bool getCurrentCommit(Commit c, ShaBuffer currentCommit)
 		int fd = open(s_getstr(s), O_RDONLY);
 		if(fd > 0)
 		{
-			read(fd, currentCommit, SHA_HASH_LENGTH);
+			uint32_t dummy;
+			dummy = read(fd, currentCommit, SHA_HASH_LENGTH);
 			close(fd);
 			if(false == Commit_ReadCommitFile(c,currentCommit))
 			{

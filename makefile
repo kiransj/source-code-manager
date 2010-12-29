@@ -13,25 +13,17 @@ OBJECTS := $(addprefix ${OBJS_FOLDER}/,$(SOURCES:.c=.o))
 
 all: ${EXECUTABLES}
 
-opt1: ${EXECUTABLES}
-	${CC} ${INCLUDE} ${CC_FLAG} -O1 ${LDFLAGS}  ${OBJECTS} -o $@
-opt2: ${EXECUTABLES}
-	${CC} ${INCLUDE} ${CC_FLAG} -O2 ${LDFLAGS}  ${OBJECTS} -o $@
-opt3: ${EXECUTABLES}
-	${CC} ${INCLUDE} ${CC_FLAG} -O3 ${LDFLAGS}  ${OBJECTS} -o $@
-
-
 .PHONY: all clean distclean
 
 ${OBJS_FOLDER}:
 	mkdir -p ${foreach s, ${SRC}, ${OBJS_FOLDER}/${s}}
 
 ${EXECUTABLES}: ${OBJS_FOLDER} ${OBJECTS} ${INCLUDE_FILES}
-	${CC} ${INCLUDE} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R --c-kinds=+p --fields=+S
+	${CC} ${INCLUDE} ${OPT} ${CC_FLAG} ${LDFLAGS}  ${OBJECTS} -o $@  && ctags -R --c-kinds=+p --fields=+S
 
 #if any header files gets modified compile the whole project again
 .objs/%.o: %.c ${INCLUDE_FILES}
-	${CC} ${INCLUDE} ${OBJ_FLAGS} $< -o $@
+	${CC} ${INCLUDE} ${OPT} ${OBJ_FLAGS} $< -o $@
 
 clean:
 	 rm -rf ${EXECUTABLES} ${OBJS_FOLDER}

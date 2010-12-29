@@ -460,7 +460,7 @@ bool FileList_DeSerialize(FileList f, const char *filename)
 {
 	struct stat s;
 	bool returnValue = false;
-	uint32_t fd, i, numOfFiles, temp;
+	uint32_t fd, i, numOfFiles, temp, dummy;
 	unsigned char buffer[MAX_BUFFER_SIZE];
 
 	FileList_ResetList(f);
@@ -481,14 +481,14 @@ bool FileList_DeSerialize(FileList f, const char *filename)
 		LOG_ERROR("FileList_DeSerialize: open('%s') failed(%d)", filename, errno);
 		return false;
 	}
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	if(ntohl(temp) != OBJECT_FILE_LIST)
 	{
 		LOG_ERROR("FileList_DeSerialize: SYNC byte match failed");
 		goto EXIT;
 	}
 
-	read(fd, &temp, INT_SIZE);
+	dummy = read(fd, &temp, INT_SIZE);
 	numOfFiles = ntohl(temp);
 	SetListSize(f, numOfFiles+10);
 	for(i = 0; i < numOfFiles; i++)
@@ -533,11 +533,11 @@ bool FileList_Serialize(FileList f, const char *filename)
 
 	/*Write the identifier*/
 	temp = htonl(OBJECT_FILE_LIST);
-	write(fd, &temp, INT_SIZE);
+	temp = write(fd, &temp, INT_SIZE);
 
 	/*Write the number of files&folders*/
 	temp = htonl(f->length - f->numOfdeletedFiles);
-	write(fd, &temp, INT_SIZE);
+	temp = write(fd, &temp, INT_SIZE);
 
 	for(i = 0 ; i < f->length ; i++)
 	{
@@ -546,8 +546,8 @@ bool FileList_Serialize(FileList f, const char *filename)
 			int length;
 			length = File_Serialize(f->list[i], buffer, MAX_BUFFER_SIZE);
 			temp = htonl(length);
-			write(fd, &temp, INT_SIZE);
-			write(fd, buffer, length);
+			temp = write(fd, &temp, INT_SIZE);
+			temp = write(fd, buffer, length);
 		}
 	}
 	close(fd);
