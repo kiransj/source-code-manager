@@ -117,7 +117,8 @@ bool FileList_Find(FileList f, const char *filename, uint32_t * const pos)
 /*Returns the list and sets the listLength to number of elements*/
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 {
-	*listLength	 = f->length;
+	if(NULL != listLength)
+		*listLength	 = f->length;
 	return f->list;
 }
 

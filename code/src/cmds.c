@@ -121,11 +121,78 @@ EXIT:
 	return returnValue;
 }
 
+bool isFileModified(File f, const char *filename)
+{
+	struct stat s;
+	bool flag = false;
+	if(0 != stat(filename, &s))
+	{
+		return flag;
+	}
+	if(f->mode != s.st_mode)
+	{
+		f->mode = s.st_mode;
+		flag = true;
+	}
+	if(f->mtime != s.st_mtime)
+	{
+		File_SetFileData(f, filename, true);	
+		flag = true;
+	}
+	return flag;
+}
+
+bool addFileIfNecessary(FileList indexlist, const String filename)
+{
+	uint32_t pos = 0;
+	bool modified;
+
+/*Add the file to repo*/
+	if(true == FileList_Find(indexlist, s_getstr(filename), &pos))
+	{
+		/*check if the has modifed. if true copy it to repo and update the index*/
+		if(true == isFileModified(FileList_GetListDetails(indexlist,NULL)[pos], s_getstr(filename)))
+		{
+			modified = true;
+			LOG_INFO("Updating %s", s_getstr(filename));
+			copyFileToCache(FileList_GetListDetails(indexlist,NULL)[pos]);
+		}
+	}
+	else
+	{
+		uint32_t len;
+		char *str;
+
+		LOG_INFO("Adding %s", s_getstr(filename));
+		/*this is a new file, add it to the list and update the index and copy it to cache*/
+		FileList_InsertFile(indexlist,s_getstr(filename),true);
+		FileList_Find(indexlist, s_getstr(filename), &pos);
+		copyFileToCache(FileList_GetListDetails(indexlist,NULL)[pos]);
+		modified = true;
+
+		/*add all the folder that leads to current folder*/
+		str = (char*)s_getstr(filename);
+		len = String_strlen(filename);
+		while(len > 2)
+		{
+			while((len > 2) && str[len--] != '/');
+			if(len > 2)
+			{
+				str[len+1] = 0;
+				FileList_InsertFile(indexlist, str, false);
+			}
+		}
+
+	}
+	return modified;
+}
+
 int cmd_add(int argc, char *argv[])
 {
+	bool modified = false;
 	int i, returnValue = 0;
-	FileList f = FileList_Create(), f1 = FileList_Create();
-	String indexfile = String_Create(), s1 = String_Create();
+	FileList indexlist = FileList_Create();
+	String indexfile = String_Create(), filename = String_Create();
 	if(argc < 3)
 	{
 		LOG_ERROR("usage %s %s <filename | foldername>", argv[0], argv[1]);
@@ -137,96 +204,60 @@ int cmd_add(int argc, char *argv[])
 		goto EXIT;
 	}
 
-	FileList_DeSerialize(f, s_getstr(indexfile));
+	FileList_DeSerialize(indexlist, s_getstr(indexfile));
 	for(i = 2; i < argc; i++)
 	{
-		if(true == isItFile(argv[i]))
+		String_strcpy(filename, argv[i]);
+		String_NormalizeFolderName(filename);
+		if(isItFile(argv[i]))		
 		{
-			char *str;
-			int len;
-			File d = File_Create();
-			String_strcpy(s1, argv[i]);
-			String_NormalizeFileName(s1);
-			str = (char*)s_getstr(s1);
-			len = String_strlen(s1);
-			LOG_INFO("adding %s", str);
-			File_SetFileData(d, str, true);
-			FileList_InsertFile(f, str, true);
-
-			/*copy the file to repo..*/
-			copyFileToCache(d);
-			File_Delete(d);
-			/* Add all the folder which leads to the current file
-			 * Example if you insert scm add ./code/src/main.c the following gets inserted
-			 * ./code
-			 * ./code/src
-			 * ./code/src/main.c
-			 *
-			 * Make sure we don't insert './' */
-			while(len > 2)
-			{
-				while((len > 2) && str[len--] != '/');
-				if(len > 2)
-				{
-					str[len+1] = 0;
-					FileList_InsertFile(f, str, false);
-				}
-			}
+			/*add the file if it modified*/
+			modified = addFileIfNecessary(indexlist, filename) || modified;	
 		}
-		else if(true == isItFolder(argv[i]))
+		else if(isItFolder(argv[i]))
 		{
+			/*read all the files in the folder recursively and add/update them if necessary*/
 			File *list;
+			FileList f1;
 			char *str;
 			uint32_t num = 0, j, len;
-			FileList_ResetList(f1);
-			String_strcpy(s1, argv[i]);
+			f1 = FileList_Create();
 
-			String_NormalizeFolderName(s1);
+			if(strcmp(s_getstr(filename), ".") != 0)
+				FileList_InsertFile(indexlist, s_getstr(filename), false);
 
-			LOG_INFO("adding %s/", s_getstr(s1));
-			if(strcmp(s_getstr(s1), ".") != 0)
-				FileList_InsertFile(f, s_getstr(s1), false);
-
-			FileList_GetDirectoryConents(f1, s_getstr(s1), true /*recursive*/, false /*computeSha*/);
+			FileList_GetDirectoryConents(f1, s_getstr(filename), true /*recursive*/, false /*computeSha*/);
 			list = FileList_GetListDetails(f1, &num);
 
 			/*Add the individual files to the list*/
 			for(j = 0; j < num; j++)
 			{
-				uint32_t pos, temp;
-				FileList_InsertFile(f, s_getstr(list[j]->filename), true);
-
-				/*copy the file to repo..*/
-				if(FileList_Find(f, s_getstr(list[j]->filename), &pos))
-					copyFileToCache(FileList_GetListDetails(f, &temp)[pos]);
+				modified = addFileIfNecessary(indexlist, list[j]->filename) || modified;	
 			}
+
 			/*Add all the folders which leads to current folder*/
-			str = (char*)s_getstr(s1);
-			len = String_strlen(s1);
+			str = (char*)s_getstr(filename);
+			len = String_strlen(filename);
 			while(len > 2)
 			{
 				while((len > 2) && str[len--] != '/');
 				if(len > 2)
 				{
 					str[len+1] = 0;
-					FileList_InsertFile(f, str, false);
+					FileList_InsertFile(indexlist, str, false);
 				}
 			}
-		}
-		else
-		{
-			LOG_ERROR("FATAL: cmd_add() '%s' is neither a file nor a folder", argv[i]);
-			returnValue = 1;
-			goto EXIT;
+	
+			FileList_Delete(f1);
 		}
 	}
-	/*Rewrite the index file*/
-	FileList_Serialize(f, s_getstr(indexfile));
+	if(true == modified)
+		FileList_Serialize(indexlist, s_getstr(indexfile));
 EXIT:
-	FileList_Delete(f);
-	FileList_Delete(f1);
+	FileList_Delete(indexlist);
+
 	String_Delete(indexfile);
-	String_Delete(s1);
+	String_Delete(filename);
 	return returnValue;
 }
 
