@@ -84,7 +84,7 @@ static int differences(File ref, File n, DifferenceType type, void *data)
 						p[1] = 'M';
 					}
 				}
-				if(strlen(p))
+				if((p[0] != ' ') || p[1] != ' ')
 				LOG_INFO("%2s %s", p, s_getstr(ref->filename));
 			}
 			break;
@@ -224,8 +224,7 @@ int cmd_add(int argc, char *argv[])
 			uint32_t num = 0, j, len;
 			f1 = FileList_Create();
 
-			if(strcmp(s_getstr(filename), ".") != 0)
-				FileList_InsertFile(indexlist, s_getstr(filename), false);
+			FileList_InsertFile(indexlist, s_getstr(filename), false);
 
 			FileList_GetDirectoryConents(f1, s_getstr(filename), true /*recursive*/, false /*computeSha*/);
 			list = FileList_GetListDetails(f1, &num);
@@ -621,5 +620,92 @@ int cmd_info(int argc, char *argv[])
 	}
 EXIT:
 	Commit_Delete(c);
+	return 0;
+}
+
+bool createCompletePath(String filename, int mode)
+{
+	int len = String_strlen(filename), i;
+	char *str = (char*)s_getstr(filename);	
+
+	i = 2;
+
+	LOG_INFO("%s",str);
+	while(i < len)
+	{
+		while((i < len) && (str[i] != '/'))
+			i++;
+		if(i != len)
+		{
+			str[i] = 0;
+			if(!isItFolder(str))
+			{
+				if(0 != mkdir(str, mode))
+					return false;
+				}
+			str[i++] = '/';
+		}
+	}
+
+	if(!isItFolder(str))
+	if(0 != mkdir(str, mode))
+	{
+		LOG_ERROR("createCompletePath: mkdir('%s') failed (%d)", str, errno);
+		return false;
+	}
+	return true;
+}
+
+int cmd_checkout(int argc, char *argv[])
+{
+	uint32_t i, pos;
+	String filename;
+	FileList indextree;
+	if(argc == 2)
+	{	
+		LOG_ERROR("usage %s %s [file|folder]name", argv[0], argv[1]);
+		return 1;
+	}
+	filename = String_Create();
+	indextree = FileList_Create();
+	if((false == getCurrentIndexFile(filename)) || (false == FileList_DeSerialize(indextree, s_getstr(filename))))
+		goto EXIT;
+	for(i = 2; i < argc; i++)
+	{
+		File *list;
+		pos = -1;
+		String_strcpy(filename, argv[i]);
+		String_NormalizeFolderName(filename);
+		if(false == FileList_Find(indextree, s_getstr(filename), &pos))
+		{
+			LOG_ERROR("%s: '%s' is not found in the tree", argv[1], s_getstr(filename));
+			goto EXIT;
+		}
+		list = FileList_GetListDetails(indextree,NULL);
+		if(S_ISREG(list[pos]->mode))
+			copyFiletoWorkArea(list[pos]);
+		else  if(S_ISDIR(list[pos]->mode))
+		{
+			int i = pos, len = String_strlen(list[i]->filename);
+			while(strncmp(s_getstr(list[i]->filename), s_getstr(list[pos]->filename), len) == 0)
+			{
+				if(S_ISDIR(list[i]->mode))
+				{
+					if(false == createCompletePath(list[i]->filename, list[i]->mode))
+					{
+						goto EXIT;
+					}
+				}
+				else
+				{
+					copyFiletoWorkArea(list[i]);
+				}
+				i++;
+			}
+		}			
+	}
+EXIT:
+	FileList_Delete(indextree);
+	String_Delete(filename);
 	return 0;
 }

@@ -87,7 +87,8 @@ static bool getPositionToInsert(const FileList f, const char *filename, uint32_t
 	uint32_t mid, max, min;
 	min = 0;
 	max = f->length;
-	*pos = 0;
+	if(NULL != pos)
+		*pos = 0;
 	if(f->length != 0)
 	{
 		int temp;
@@ -105,7 +106,8 @@ static bool getPositionToInsert(const FileList f, const char *filename, uint32_t
 			else if(0 > temp)
 				min = mid + 1;
 		}
-		*pos = min;
+		if(NULL != pos)
+			*pos = min;
 	}
 	return false;
 }
@@ -558,7 +560,7 @@ bool FileList_Serialize(FileList f, const char *filename)
 void FileList_PrintList(const FileList f, const bool recursive, const bool longlist)
 {
 	int i = 0;
-	for(i = 0; i < f->length; i++)
+	for(i = 1; i < f->length; i++)
 	{
 		if(longlist)
 		{		

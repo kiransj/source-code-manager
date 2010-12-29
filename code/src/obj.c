@@ -227,3 +227,36 @@ EXIT:
 
 	return returnValue;
 }
+
+bool copyFiletoWorkArea(File f)
+{
+	String path, branchName;
+	bool returnValue = false;
+	if(!S_ISREG(f->mode))
+		return false;
+	path = String_Create();
+	branchName = String_Create();
+	if(false == getBranchName(branchName))
+		goto EXIT;
+
+	String_format(path, "%s/%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER, f->sha);
+	if(!isItFile(s_getstr(path)))
+	{
+		String_format(path, "%s/%s", SCM_BLOB_FOLDER, f->sha);
+		if(!isItFile(s_getstr(path)))
+		{
+			LOG_ERROR("copyFiletoWorkArea: blob '%s' not found in repo", f->sha);
+			goto EXIT;
+		}
+	}
+	returnValue = decompressAndSave(s_getstr(path),s_getstr(f->filename),f->mode);
+	if(false == returnValue)
+	{
+		LOG_ERROR("copyFiletoWorkArea: unable to copy '%s' back to working area", s_getstr(f->filename));
+	}
+EXIT:
+	String_Delete(path);
+	String_Delete(branchName);
+	return returnValue;
+}
+

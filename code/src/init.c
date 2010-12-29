@@ -34,12 +34,13 @@ EXIT:
 	return returnValue;
 }
 
-static bool CreateEmptyIndexFile(const char *path)
+static bool CreateFirstIndexFile(const char *path)
 {
 	FileList f;
 	bool returnValue;
 	f = FileList_Create();
 	FileList_ResetList(f);
+	FileList_InsertFile(f,".",false);
 	returnValue = FileList_Serialize(f, path);
 	FileList_Delete(f);
 	return returnValue;
@@ -110,7 +111,7 @@ int cmd_init(int argc, char *argv[])
 
 	String_format(s, "%s/%s/%s", SCM_BRANCH_FOLDER, SCM_DEFAULT_BRANCH, SCM_INDEX_FILENAME);
 	/*Create a empty index file*/
-	if(false == CreateEmptyIndexFile(s_getstr(s)))
+	if(false == CreateFirstIndexFile(s_getstr(s)))
 	{
 		LOG_INFO("CreateEmptyIndexFile() failed()");
 	}

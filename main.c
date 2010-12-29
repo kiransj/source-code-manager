@@ -15,16 +15,17 @@ struct commands
 
 int main(int argc, char *argv[])
 {
-	struct commands cmds[] = {  {"sha", 			cmd_sha		, "compute hash of the files"},
-								{"version",			cmd_version , "display version "},
-								{"init",			cmd_init	, "intialize the repo"},
-								{"branch",			cmd_branch	, "displays the current branch"},
-								{"status",			cmd_status	, "show's current status wrt to index file"},
-								{"add",			    cmd_add		, "adds file's or folders into the index file"},
-								{"ls",			    cmd_ls		, "prints the file's"},
-								{"commit",			cmd_commit	, "commits the current changes into repo"},
-								{"info",			cmd_info	, "info"},
-								{"rm",				cmd_rm   	, "remove file from list"},
+	struct commands cmds[] = {  {"sha", 			cmd_sha			, "compute hash of the files"},
+								{"version",			cmd_version 	, "display version "},
+								{"init",			cmd_init		, "intialize the repo"},
+								{"branch",			cmd_branch		, "displays the current branch"},
+								{"status",			cmd_status		, "show's current status wrt to index file"},
+								{"add",			    cmd_add			, "adds file's or folders into the index file"},
+								{"ls",			    cmd_ls			, "prints the file's"},
+								{"commit",			cmd_commit		, "commits the current changes into repo"},
+								{"info",			cmd_info		, "prints information about a commit"},
+								{"rm",				cmd_rm			, "remove file from list"},
+								{"checkout",		cmd_checkout	, "checkout a file/folder or a commit"},
 							 };
 	const int commands_len = sizeof(cmds)/sizeof(*cmds);
 
