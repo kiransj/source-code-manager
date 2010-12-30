@@ -380,7 +380,7 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 		case FILE_NEW:
 			p->n++;
 			if((true == p->copyFile) && S_ISREG(n->mode))
-				copyFileToRepo(n);
+				moveFileFromCacheToRepo(n);
 			break;
 		case FILE_DELETED:
 			p->d++;
@@ -393,7 +393,7 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 				{
 					p->m++;
 					if(true == p->copyFile)
-						copyFileToRepo(n);
+						moveFileFromCacheToRepo(n);
 				}
 				else if(ref->mode !=  n->mode)
 					p->m++;
