@@ -147,25 +147,32 @@ int String_format(String s, const char *format, ...)
  * */
 void String_NormalizeFolderName(String s)
 {
-	int n = s->strLen-1;
-
-	while((n > 0) && (s->str[--n] == '/'));
-	s->str[n+1] = 0;
-	s->strLen = n+1;
-
-	if((strcmp(s->str, ".") != 0) && (strncmp(s->str, "./", 2) != 0))
+	if(isItFolder(s->str) || isItFile(s->str))
 	{
-		memmove(s->str+2, s->str, s->strLen);
-		s->str[0] = '.';
-		s->str[1] = '/';
-		s->strLen = s->strLen+2;
-		s->str[s->strLen] = 0;
+	char *ptr, buffer[1024];
+	ptr = realpath(s->str, NULL);
+	getcwd(buffer, 1024);
+	if(strncmp(ptr, buffer, strlen(buffer)) == 0)
+	{
+	    int len = strlen(buffer);
+		strcpy(s->str, ".");
+		strcat(s->str, ptr+len);
+		s->strLen = strlen(s->str);
 	}
+	else
+	{
+		LOG_INFO("fatal: '%s' is outsize repo!", s->str);
+		exit(1);
+	}
+	XFREE(ptr);
+	}
+	else
+		String_NormalizeFileName(s);
 	return;
 }
 
 void String_NormalizeFileName(String s)
-{	
+{
 	if(strncmp(s->str, "./", 2) != 0)
 	{
 		String_SetSize(s, s->strLen+5);

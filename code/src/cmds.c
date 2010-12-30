@@ -44,17 +44,6 @@ int cmd_sha(int argc, char *argv[])
 	return 0;
 }
 
-int cmd_branch(int argc, char *argv[])
-{
-	String s;
-	s = String_Create();
-	if(true == getBranchName(s))
-	{
-		LOG_INFO("%s", s_getstr(s));
-	}
-	String_Delete(s);
-	return 0;
-}
 
 static int differences(File ref, File n, DifferenceType type, void *data)
 {
@@ -137,7 +126,7 @@ bool isFileModified(File f, const char *filename)
 	}
 	if(f->mtime != s.st_mtime)
 	{
-		File_SetFileData(f, filename, true);	
+		File_SetFileData(f, filename, true);
 		flag = true;
 	}
 	return flag;
@@ -208,12 +197,13 @@ int cmd_add(int argc, char *argv[])
 	FileList_DeSerialize(indexlist, s_getstr(indexfile));
 	for(i = 2; i < argc; i++)
 	{
+	
 		String_strcpy(filename, argv[i]);
 		String_NormalizeFolderName(filename);
-		if(isItFile(argv[i]))		
+		if(isItFile(argv[i]))
 		{
 			/*add the file if it modified*/
-			modified = addFileIfNecessary(indexlist, filename) || modified;	
+			modified = addFileIfNecessary(indexlist, filename) || modified;
 		}
 		else if(isItFolder(argv[i]))
 		{
@@ -223,7 +213,7 @@ int cmd_add(int argc, char *argv[])
 			char *str;
 			uint32_t num = 0, j, len;
 			f1 = FileList_Create();
-
+				
 			FileList_InsertFile(indexlist, s_getstr(filename), false);
 
 			FileList_GetDirectoryConents(f1, s_getstr(filename), true /*recursive*/, false /*computeSha*/);
@@ -232,7 +222,7 @@ int cmd_add(int argc, char *argv[])
 			/*Add the individual files to the list*/
 			for(j = 0; j < num; j++)
 			{
-				modified = addFileIfNecessary(indexlist, list[j]->filename) || modified;	
+				modified = addFileIfNecessary(indexlist, list[j]->filename) || modified;
 			}
 
 			/*Add all the folders which leads to current folder*/
@@ -247,8 +237,13 @@ int cmd_add(int argc, char *argv[])
 					FileList_InsertFile(indexlist, str, false);
 				}
 			}
-	
+
 			FileList_Delete(f1);
+		}
+		else
+		{
+			LOG_ERROR("fatal: file '%s' not found", argv[i]);
+			goto EXIT;
 		}
 	}
 	if(true == modified)
@@ -266,7 +261,7 @@ int cmd_rm(int argc, char *argv[])
 {
 	FileList f;
 	String indexfile, s;
-	bool recursive = false; 
+	bool recursive = false;
 	int returnValue = 1;
 	if(argc == 2)
 	{
@@ -274,7 +269,7 @@ int cmd_rm(int argc, char *argv[])
 		return 1;
 	}
 	indexfile = String_Create();
-	s = String_Create();				
+	s = String_Create();
 	f = FileList_Create();
 
 	if(false == getCurrentIndexFile(indexfile))
@@ -291,13 +286,13 @@ int cmd_rm(int argc, char *argv[])
 
 			if(argv[i][0] != '-')
 			{
-				LOG_INFO("Deleting %s", argv[i]);
 				String_strcpy(s, argv[i]);
-				String_NormalizeFolderName(s);
-				if(false == FileList_RemoveFile(f,s_getstr(s), recursive)) 
+				String_NormalizeFileName(s);
+				if(false == FileList_RemoveFile(f,s_getstr(s), recursive))
 				{
-					goto EXIT;					
+					goto EXIT;
 				}
+				LOG_INFO("Deleting %s", argv[i]);
 			}
 			else
 			{
@@ -305,7 +300,7 @@ int cmd_rm(int argc, char *argv[])
 					recursive = true;
 				else
 				{
-					
+
 					LOG_ERROR("usage %s %s -r <filenames |  foldernames>", argv[0], argv[1]);
 					goto EXIT;
 				}
@@ -316,7 +311,7 @@ int cmd_rm(int argc, char *argv[])
 		FileList_Serialize(f, s_getstr(indexfile));
 		returnValue = 0;
 	}
-EXIT:	
+EXIT:
 	FileList_Delete(f);
 	String_Delete(indexfile);
 	String_Delete(s);
@@ -374,6 +369,9 @@ struct diff
 	int n, d, m;
 	bool copyFile;
 };
+
+/*finds what has changed between two file objects of the same file.
+ * and if necessary copies content to the blob folder */
 static int differences_commit(File ref, File n, DifferenceType type, void *data)
 {
 	struct diff *p = (struct diff*)data;
@@ -388,9 +386,9 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 			p->d++;
 			break;
 		case FILE_MODIFIED:
-
 			if(S_ISREG(ref->mode))
 			{
+				sha_file(s_getstr(n->filename), n->sha);
 				if(false == sha_compare(ref->sha, n->sha))
 				{
 					p->m++;
@@ -399,12 +397,8 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 				}
 				else if(ref->mode !=  n->mode)
 					p->m++;
-				else
-				{
-					LOG_INFO("differences_commit: something is wrong.. unable to detect what has changed?");
-				}
 			}
-			else if(ref->mode !=  n->mode)
+			else if(ref->mode != n->mode)
 				p->m++;
 			break;
 		case FILE_LAST_VALUE:
@@ -413,7 +407,7 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 	}
 	return 1;
 }
-
+#if 0
 static bool proceedWithCommit(char *argv)
 {
 	bool returnValue = false;
@@ -451,7 +445,7 @@ EXIT:
 	String_Delete(s);
 	return returnValue;
 }
-
+#endif
 
 int cmd_commit(int argc, char *argv[])
 {
@@ -462,6 +456,7 @@ int cmd_commit(int argc, char *argv[])
 	ShaBuffer commitSha, prevCommit, dummy;
 	Commit c = Commit_Create(), prev = Commit_Create();
 	FileList parentTree = FileList_Create(), indexTree = FileList_Create();
+
 
 	if(argc >= 3)
 	{
@@ -475,7 +470,7 @@ int cmd_commit(int argc, char *argv[])
 					Commit_SetMessage(c, optarg);
 					flag = true;
 					break;
-				case 'h':		
+				case 'h':
 					LOG_INFO("usage %s %s -m <msg>", argv[0], argv[1]);
 					returnValue = 0;
 					goto EXIT;
@@ -500,9 +495,12 @@ int cmd_commit(int argc, char *argv[])
 
 	/*check whether all the changes to the working area are added
 	 * into index, if not abort commit*/
-	if(false == proceedWithCommit(argv[0]))
+	if(true == compareIndexWithWorkingArea())
+	{
+		LOG_ERROR("changes not updated, run `%s status` to view the changes", argv[0]);
+		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv[0]);
 		goto EXIT;
-
+	}
 
 	sha_reset(dummy);
 
@@ -577,7 +575,7 @@ int cmd_info(int argc, char *argv[])
 					strcpy((char*)sha, optarg);
 					flag = true;
 					break;
-				case 'h':		
+				case 'h':
 					LOG_INFO("usage %s %s [-c <commitSha>]\n Default prints the current commit information", argv[0], argv[1]);
 					goto EXIT;
 				default:
@@ -608,7 +606,7 @@ int cmd_info(int argc, char *argv[])
 
 		t = localtime(&c->rawtime);
 		strftime(buffer, 64, "%c", t);
-		
+
 		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
 		if(0 != strlen((char*)c->parent1))
@@ -626,7 +624,7 @@ EXIT:
 bool createCompletePath(FileList list, String filename, int mode)
 {
 	int len = String_strlen(filename), i;
-	char *str = (char*)s_getstr(filename);	
+	char *str = (char*)s_getstr(filename);
 	uint32_t pos = 0;
 
 	i = 2;
@@ -652,7 +650,7 @@ bool createCompletePath(FileList list, String filename, int mode)
 				if(0 != mkdir(str, mode))
 					return false;
 			}
-		
+
 			str[i++] = '/';
 		}
 	}
@@ -671,7 +669,7 @@ bool createCompletePath(FileList list, String filename, int mode)
 			LOG_ERROR("createCompletePath: mkdir('%s') failed (%d)", str, errno);
 			return false;
 		}
-		
+
 	}
 	return true;
 }
@@ -682,7 +680,7 @@ int cmd_checkout(int argc, char *argv[])
 	String filename;
 	FileList indextree;
 	if(argc == 2)
-	{	
+	{
 		LOG_ERROR("usage %s %s [file|folder]name", argv[0], argv[1]);
 		return 1;
 	}
@@ -706,7 +704,7 @@ int cmd_checkout(int argc, char *argv[])
 		{
 			if(false == createCompletePath(indextree, list[pos]->filename, list[pos]->mode))
 				goto EXIT;
-			copyFiletoWorkArea(list[pos]);
+			copyFileFromRepo(list[pos]);
 		}
 		else  if(S_ISDIR(list[pos]->mode))
 		{
@@ -722,11 +720,11 @@ int cmd_checkout(int argc, char *argv[])
 				}
 				else
 				{
-					copyFiletoWorkArea(list[i]);
+					copyFileFromRepo(list[i]);
 				}
 				i++;
 			}
-		}			
+		}
 	}
 EXIT:
 	FileList_Delete(indextree);
