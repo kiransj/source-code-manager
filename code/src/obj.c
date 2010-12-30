@@ -180,7 +180,27 @@ bool copyTreeToRepo(File f)
 	String_Delete(s);
 	return returnValue;
 }
+bool copyTreeFromRepo(ShaBuffer tree, const char *dest, int mode)
+{
+	bool returnValue = false;
+	String s;
+	s = String_Create();
 
+	String_format(s, "%s/%s", SCM_TREE_FOLDER, tree);
+
+	/*Check if this file already exist in the repo*/
+	if(true == isItFile(s_getstr(s)))
+	{
+		returnValue = copyFile(s_getstr(s), dest, mode);
+		returnValue = true;
+	}
+	else 
+	{
+		LOG_ERROR("FATAL: tree '%s' not found", tree);
+	}
+	String_Delete(s);
+	return returnValue;
+}
 /*copies file from the branch cache to the blob repo...*/
 bool copyFileToRepo(File f)
 {
@@ -228,7 +248,7 @@ EXIT:
 	return returnValue;
 }
 
-bool copyFiletoWorkArea(File f)
+bool copyFileFromRepo(File f)
 {
 	String path, branchName;
 	bool returnValue = false;
@@ -260,3 +280,72 @@ EXIT:
 	return returnValue;
 }
 
+struct diff
+{
+	int n, d, m;
+};
+static int differences(File ref, File n, DifferenceType type, void *data)
+{
+	struct diff *p = (struct diff*)data;
+	switch(type)
+	{
+		case FILE_NEW:
+			p->n++;
+			break;
+		case FILE_DELETED:
+			p->d++;
+			break;
+		case FILE_MODIFIED:
+			if(S_ISREG(ref->mode))
+			{
+				if(ref->mode !=  n->mode)
+					p->m++;
+				else
+				{
+					sha_file(s_getstr(n->filename),n->sha);
+					if(false == sha_compare(ref->sha, n->sha))
+					p->m++;
+				}
+			}
+			else if(ref->mode !=  n->mode)
+				p->m++;
+			break;
+		case FILE_LAST_VALUE:
+		default:
+			break;
+	}
+	return 1;
+}
+
+/*Returns true if the working area is not same as the indexfile*/
+bool compareIndexWithWorkingArea(void)
+{
+	bool returnValue = false;
+	FileList indexlist, workingArea;
+	struct diff d = {0, 0, 0};
+	String filename;
+	filename = String_Create();
+	indexlist = FileList_Create();
+	workingArea = FileList_Create();
+
+	if(false == getCurrentIndexFile(filename))
+		goto EXIT;
+
+	if(false == FileList_DeSerialize(indexlist, s_getstr(filename)))
+		goto EXIT;
+
+	if(FileList_GetListLength(indexlist) == 0)
+	{
+		LOG_ERROR("index file is empty!!!");
+		goto EXIT;
+	}
+	FileList_GetDirectoryConents(workingArea, "./", true, false);
+	FileList_GetDifference(indexlist, workingArea, differences, &d);
+	if(d.m > 0)
+		returnValue = true;
+EXIT:
+	FileList_Delete(indexlist);
+	FileList_Delete(workingArea);
+	String_Delete(filename);
+	return returnValue;
+}

@@ -457,6 +457,7 @@ int cmd_commit(int argc, char *argv[])
 	Commit c = Commit_Create(), prev = Commit_Create();
 	FileList parentTree = FileList_Create(), indexTree = FileList_Create();
 
+
 	if(argc >= 3)
 	{
 		int o;
@@ -495,8 +496,11 @@ int cmd_commit(int argc, char *argv[])
 	/*check whether all the changes to the working area are added
 	 * into index, if not abort commit*/
 	if(true == compareIndexWithWorkingArea())
+	{
+		LOG_ERROR("changes not updated, run `%s status` to view the changes", argv[0]);
+		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv[0]);
 		goto EXIT;
-
+	}
 
 	sha_reset(dummy);
 
@@ -700,7 +704,7 @@ int cmd_checkout(int argc, char *argv[])
 		{
 			if(false == createCompletePath(indextree, list[pos]->filename, list[pos]->mode))
 				goto EXIT;
-			copyFiletoWorkArea(list[pos]);
+			copyFileFromRepo(list[pos]);
 		}
 		else  if(S_ISDIR(list[pos]->mode))
 		{
@@ -716,7 +720,7 @@ int cmd_checkout(int argc, char *argv[])
 				}
 				else
 				{
-					copyFiletoWorkArea(list[i]);
+					copyFileFromRepo(list[i]);
 				}
 				i++;
 			}
