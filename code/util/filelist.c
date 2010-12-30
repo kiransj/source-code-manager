@@ -160,7 +160,7 @@ bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive)
 	}
 	else
 	{
-		LOG_ERROR("FileList_DeleteFile: file '%s' not found in the list", filename);
+		LOG_ERROR("FileList_RemoveFile: file '%s' not found in the list", filename);
 	}
 	return returnValue;
 }

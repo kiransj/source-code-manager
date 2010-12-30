@@ -8,4 +8,4 @@ bool copyTreeToRepo(File f);
 bool copyFiletoWorkArea(File f);
 bool getCurrentCommit(Commit c, ShaBuffer currentCommit);
 bool setCurrentCommit(ShaBuffer commitSha);
-
+bool compareIndexWithWorkingArea(void);
