@@ -3,7 +3,7 @@
 
 #include <sys/stat.h>
 
-#define SCM_VERSION_NUMBER	"0.02"
+#define SCM_VERSION_NUMBER	"0.03"
 #define SCM_DEFAULT_BRANCH	"master"
 
 #define SCM_FOLDER			".scm"
