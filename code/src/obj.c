@@ -39,7 +39,23 @@ bool getBranchName(String const s)
 EXIT:
 	return returnValue;
 }
+bool setBranchName(String const s)
+{
+	FILE *fp;
+	bool returnValue = false;
 
+	fp = fopen(SCM_HEAD_FILE, "w");
+	if(NULL == fp)
+	{
+		LOG_ERROR("fatal: setBranchName(): unable to open HEAD file");
+		goto EXIT;
+	}
+	fprintf(fp, "branch: %s\n", s_getstr(s)); 
+	returnValue = true;
+	fclose(fp);
+EXIT:
+	return returnValue;
+}
 bool getCurrentIndexFile(String s)
 {
 	bool returnValue = false;
@@ -202,7 +218,7 @@ bool copyTreeFromRepo(ShaBuffer tree, const char *dest, int mode)
 	return returnValue;
 }
 /*copies file from the branch cache to the blob repo...*/
-bool copyFileToRepo(File f)
+bool moveFileFromCacheToRepo(File f)
 {
 	bool returnValue = false;
 
@@ -225,7 +241,7 @@ bool copyFileToRepo(File f)
 		}
 		String_format(s1, "%s/%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER, f->sha);
 		String_format(s, "%s/%s", SCM_BLOB_FOLDER, f->sha);
-		/*check if the file is in the cache... if it not then it should be in repo.
+		/*check if the file is in the cache... if it not then it should already be in repo.
 		 * if it is not in repo, then where is it?*/
 		if(true == isItFile(s_getstr(s1)))
 		{
@@ -237,7 +253,6 @@ bool copyFileToRepo(File f)
 		{
 			LOG_ERROR("file '%s' is not in cache nor in repo... (this should neven happen, state may be invalid)", s_getstr(f->filename));
 			LOG_ERROR("copying file from working area to repo..");
-			returnValue = compressAndSave(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
 		}
 EXIT:
 		String_Delete(s);
