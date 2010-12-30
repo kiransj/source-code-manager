@@ -112,7 +112,7 @@ int cmd_status(int argc, char *argv[])
 		goto EXIT;
 
 	FileList_GetDirectoryConents(f1, "./", true, false);
-
+	FileList_InsertFile(f1, ".", false);
 	FileList_GetDifference(f, f1, differences, NULL);
 	returnValue = 0;
 EXIT:
@@ -623,10 +623,11 @@ EXIT:
 	return 0;
 }
 
-bool createCompletePath(String filename, int mode)
+bool createCompletePath(FileList list, String filename, int mode)
 {
 	int len = String_strlen(filename), i;
 	char *str = (char*)s_getstr(filename);	
+	uint32_t pos = 0;
 
 	i = 2;
 
@@ -635,23 +636,42 @@ bool createCompletePath(String filename, int mode)
 	{
 		while((i < len) && (str[i] != '/'))
 			i++;
+
+		str[i] = 0;
 		if(i != len)
 		{
-			str[i] = 0;
-			if(!isItFolder(str))
+
+			if(false == FileList_Find(list, str, &pos))
+				LOG_ERROR("createCompletePath: folder '%s' is not part to repo..", str);
+			else
+			{
+				mode = FileList_GetListDetails(list, NULL)[pos]->mode;
+			}
+			if(S_ISDIR(mode) && !isItFolder(str))
 			{
 				if(0 != mkdir(str, mode))
 					return false;
-				}
+			}
+		
 			str[i++] = '/';
 		}
 	}
 
-	if(!isItFolder(str))
-	if(0 != mkdir(str, mode))
+	if(false == FileList_Find(list, str, &pos))
+		LOG_ERROR("createCompletePath: folder '%s' is not part to repo..", str);
+	else
 	{
-		LOG_ERROR("createCompletePath: mkdir('%s') failed (%d)", str, errno);
-		return false;
+		mode = FileList_GetListDetails(list, NULL)[pos]->mode;
+	}
+
+	if(S_ISDIR(mode) && !isItFolder(str))
+	{
+		if(0 != mkdir(str, mode))
+		{
+			LOG_ERROR("createCompletePath: mkdir('%s') failed (%d)", str, errno);
+			return false;
+		}
+		
 	}
 	return true;
 }
@@ -683,7 +703,11 @@ int cmd_checkout(int argc, char *argv[])
 		}
 		list = FileList_GetListDetails(indextree,NULL);
 		if(S_ISREG(list[pos]->mode))
+		{
+			if(false == createCompletePath(indextree, list[pos]->filename, list[pos]->mode))
+				goto EXIT;
 			copyFiletoWorkArea(list[pos]);
+		}
 		else  if(S_ISDIR(list[pos]->mode))
 		{
 			int i = pos, len = String_strlen(list[i]->filename);
@@ -691,7 +715,7 @@ int cmd_checkout(int argc, char *argv[])
 			{
 				if(S_ISDIR(list[i]->mode))
 				{
-					if(false == createCompletePath(list[i]->filename, list[i]->mode))
+					if(false == createCompletePath(indextree, list[i]->filename, list[i]->mode))
 					{
 						goto EXIT;
 					}
