@@ -562,12 +562,12 @@ int cmd_info(int argc, char *argv[])
 {
 	ShaBuffer sha;
 	Commit c = Commit_Create();
-	bool flag = false;
+	bool flag = false, recursive;
 
 	if(argc >= 3)
 	{
 		int o;
-		while((o = getopt(argc, argv, "hc:")) != -1)
+		while((o = getopt(argc, argv, "hrc:")) != -1)
 		{
 			switch(o)
 			{
@@ -576,8 +576,11 @@ int cmd_info(int argc, char *argv[])
 					flag = true;
 					break;
 				case 'h':
-					LOG_INFO("usage %s %s [-c <commitSha>]\n Default prints the current commit information", argv[0], argv[1]);
+					LOG_INFO("usage %s %s [-c <commitSha>] [-r \"print all the commits recursively\"]\n Default prints the current commit information", argv[0], argv[1]);
 					goto EXIT;
+				case 'r':
+					recursive = true;
+					break;
 				default:
 					LOG_ERROR("usage %s %s [-c <commitSha>]", argv[0], argv[1]);
 					goto EXIT;
@@ -595,11 +598,11 @@ int cmd_info(int argc, char *argv[])
 			LOG_INFO("commit not set, new repo!!!");
 			goto EXIT;
 		}
-		LOG_INFO("Commit : %s", sha);
 	}
 
-
+	LOG_INFO(" ");
 	if(true == flag)
+	do
 	{
 		struct tm *t;
 		char buffer[64];
@@ -607,6 +610,7 @@ int cmd_info(int argc, char *argv[])
 		t = localtime(&c->rawtime);
 		strftime(buffer, 64, "%c", t);
 
+		LOG_INFO("Commit : %s", sha);
 		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
 		if(0 != strlen((char*)c->parent1))
@@ -616,6 +620,7 @@ int cmd_info(int argc, char *argv[])
 		LOG_INFO("\n   %s", s_getstr(c->message));
 		LOG_INFO(" ");
 	}
+	while((true == recursive) && (strlen((char*)c->parent0) == SHA_HASH_LENGTH) && (true == Commit_ReadCommitFile(c, c->parent0)));
 EXIT:
 	Commit_Delete(c);
 	return 0;
