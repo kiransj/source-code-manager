@@ -70,6 +70,22 @@ EXIT:
 	return returnValue;
 }
 
+bool readIndexFile(FileList index, String indexfile)
+{
+	bool flag = false;
+	String filename = String_Create();
+	if(true == getCurrentIndexFile(filename))
+	{
+		if(true == FileList_DeSerialize(index, s_getstr(filename)))
+		{
+			if(NULL != indexfile)
+			String_clone(indexfile, filename);
+			flag = true;
+		}
+	}
+	String_Delete(filename);
+	return flag;
+}
 bool getCurrentCommitFile(String s)
 {
 	bool returnValue = false;
@@ -338,15 +354,11 @@ bool compareIndexWithWorkingArea(void)
 	bool returnValue = false;
 	FileList indexlist, workingArea;
 	struct diff d = {0, 0, 0};
-	String filename;
-	filename = String_Create();
 	indexlist = FileList_Create();
 	workingArea = FileList_Create();
 
-	if(false == getCurrentIndexFile(filename))
-		goto EXIT;
 
-	if(false == FileList_DeSerialize(indexlist, s_getstr(filename)))
+	if(false == readIndexFile(indexlist, NULL))
 		goto EXIT;
 
 	if(FileList_GetListLength(indexlist) == 0)
@@ -361,6 +373,5 @@ bool compareIndexWithWorkingArea(void)
 EXIT:
 	FileList_Delete(indexlist);
 	FileList_Delete(workingArea);
-	String_Delete(filename);
 	return returnValue;
 }

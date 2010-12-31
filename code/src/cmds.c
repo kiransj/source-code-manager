@@ -119,11 +119,16 @@ bool isFileModified(File f, const char *filename)
 	{
 		return flag;
 	}
+
+	/*check if the premission have changed*/
 	if(f->mode != s.st_mode)
 	{
 		f->mode = s.st_mode;
 		flag = true;
 	}
+	/*check if the file has changed. if the mtime doesn't
+	 * doesn't really mean the file has changed, so compute the sha and check whether
+	 * a blob of the same sha exist.*/
 	if(f->mtime != s.st_mtime)
 	{
 		File_SetFileData(f, filename, true);
@@ -137,14 +142,14 @@ bool addFileIfNecessary(FileList indexlist, const String filename)
 	uint32_t pos = 0;
 	bool modified;
 
-/*Add the file to repo*/
+	/*Add the file to repo*/
 	if(true == FileList_Find(indexlist, s_getstr(filename), &pos))
 	{
 		/*check if the has modifed. if true copy it to repo and update the index*/
 		if(true == isFileModified(FileList_GetListDetails(indexlist,NULL)[pos], s_getstr(filename)))
 		{
 			modified = true;
-			LOG_INFO("Updating %s", s_getstr(filename));
+			/*Copy file if it doesn't exist in cache and in the repo*/
 			copyFileToCache(FileList_GetListDetails(indexlist,NULL)[pos]);
 		}
 	}
@@ -160,7 +165,7 @@ bool addFileIfNecessary(FileList indexlist, const String filename)
 		copyFileToCache(FileList_GetListDetails(indexlist,NULL)[pos]);
 		modified = true;
 
-		/*add all the folder that leads to current folder*/
+		/*add all the folder that leads to current folder/file*/
 		str = (char*)s_getstr(filename);
 		len = String_strlen(filename);
 		while(len > 2)
@@ -246,6 +251,7 @@ int cmd_add(int argc, char *argv[])
 			goto EXIT;
 		}
 	}
+	/*Rewrite the index file is necessary*/
 	if(true == modified)
 		FileList_Serialize(indexlist, s_getstr(indexfile));
 EXIT:
@@ -272,25 +278,29 @@ int cmd_rm(int argc, char *argv[])
 	s = String_Create();
 	f = FileList_Create();
 
-	if(false == getCurrentIndexFile(indexfile))
-	{
-		returnValue = 1;
-		goto EXIT;
-	}
-
-	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+	if(true == readIndexFile(f, indexfile))
 	{
 		int i;
 		for(i = 2; i < argc; i++)
 		{
-
+			/*check if its a filename or a option*/
 			if(argv[i][0] != '-')
 			{
 				String_strcpy(s, argv[i]);
-				String_NormalizeFileName(s);
+				String_NormalizeFolderName(s);
+
+				/*delete the file/folder*/
 				if(false == FileList_RemoveFile(f,s_getstr(s), recursive))
 				{
 					goto EXIT;
+				}
+				/*delete the folder or the file*/
+				if(isItFile(argv[i]))
+					unlink(argv[i]);
+				else if(isItFolder(argv[i]))
+				{
+					String_format(s, "rm -rf %s", argv[i]);
+					system(s_getstr(s));
 				}
 				LOG_INFO("Deleting %s", argv[i]);
 			}
@@ -322,7 +332,6 @@ int cmd_ls(int argc, char *argv[])
 	int returnValue = 0;
 	bool recursive = false, longlist = false;
 	FileList f = FileList_Create();
-	String indexfile = String_Create();
 	if(argc >= 3)
 	{
 		int c;
@@ -351,15 +360,9 @@ int cmd_ls(int argc, char *argv[])
 		}
 	}
 
-	if(false == getCurrentIndexFile(indexfile))
-	{
-		returnValue = 1;
-		goto EXIT;
-	}
-	if(true == FileList_DeSerialize(f, s_getstr(indexfile)))
+	if(true == readIndexFile(f, NULL))
 		FileList_PrintList(f, recursive, longlist);
 EXIT:
-	String_Delete(indexfile);
 	FileList_Delete(f);
 	return returnValue;
 }
@@ -407,45 +410,6 @@ static int differences_commit(File ref, File n, DifferenceType type, void *data)
 	}
 	return 1;
 }
-#if 0
-static bool proceedWithCommit(char *argv)
-{
-	bool returnValue = false;
-	FileList f, f1;
-	struct diff d = {0, 0, 0, false};
-	String s;
-	s = String_Create();
-	f = FileList_Create();
-	f1 = FileList_Create();
-
-	if(false == getCurrentIndexFile(s))
-		goto EXIT;
-
-	if(false == FileList_DeSerialize(f, s_getstr(s)))
-		goto EXIT;
-
-	if(FileList_GetListLength(f) == 0)
-	{
-		LOG_ERROR("index file is empty!!!");
-		goto EXIT;
-	}
-	FileList_GetDirectoryConents(f1, "./", true, false);
-	d.copyFile = false;
-	FileList_GetDifference(f, f1, differences_commit, &d);
-	if(d.m > 0)
-	{
-		LOG_ERROR("changes not updated, run `%s status` to view the changes", argv);
-		LOG_ERROR("Or just run `%s add .` to add all the changes and then commit", argv);
-		goto EXIT;
-	}
-	returnValue = true;
-EXIT:
-	FileList_Delete(f);
-	FileList_Delete(f1);
-	String_Delete(s);
-	return returnValue;
-}
-#endif
 
 int cmd_commit(int argc, char *argv[])
 {
@@ -456,7 +420,6 @@ int cmd_commit(int argc, char *argv[])
 	ShaBuffer commitSha, prevCommit, dummy;
 	Commit c = Commit_Create(), prev = Commit_Create();
 	FileList parentTree = FileList_Create(), indexTree = FileList_Create();
-
 
 	if(argc >= 3)
 	{
@@ -493,7 +456,7 @@ int cmd_commit(int argc, char *argv[])
 		goto EXIT;
 	}
 
-	/*check whether all the changes to the working area are added
+	/* check whether all the changes to the working area are added
 	 * into index, if not abort commit*/
 	if(true == compareIndexWithWorkingArea())
 	{
@@ -504,9 +467,10 @@ int cmd_commit(int argc, char *argv[])
 
 	sha_reset(dummy);
 
+	/*get the current commit the branch is pointing to*/
 	if(false == getCurrentCommit(prev, prevCommit))
 	{
-		LOG_INFO("first commit.. parent commit is NULL");
+		LOG_INFO("first commit!! parent commit is NULL");
 		Commit_SetParent(c, dummy, dummy);
 		FileList_ResetList(parentTree);
 	}
@@ -514,14 +478,18 @@ int cmd_commit(int argc, char *argv[])
 	{
 		Commit_SetParent(c, prevCommit, dummy);
 		String_format(s, "%s/%s", SCM_TREE_FOLDER, prev->tree);
-		FileList_DeSerialize(parentTree, s_getstr(s));
+		if(false == FileList_DeSerialize(parentTree, s_getstr(s)))
+		{
+			LOG_INFO("failed to read the parent tree");
+			goto EXIT;
+		}
 	}
-	/*Now check if any thing has been modified by comparing
+	/* Now check if any thing has been modified by comparing
 	 * index with the parentTree*/
-	getCurrentIndexFile(s);
-	FileList_DeSerialize(indexTree, s_getstr(s));
+	readIndexFile(indexTree, s);
 
-	/*Copy the modified files from cache to repo..*/
+	/* Copy the modified files from cache to repo. This is done in 
+	 * function differences_commit() */
 	d.copyFile = true;
 	FileList_GetDifference(parentTree, indexTree, differences_commit, &d);
 
@@ -538,7 +506,7 @@ int cmd_commit(int argc, char *argv[])
 
 	/*save the commit in the commit repo*/
 	Commit_SetTree(c, f->sha);
-	Commit_SetAuthor(c, "kiransj", "kiransj2@gmail.com");
+	Commit_SetAuthor(c, "Kiran S J", "kiransj2@gmail.com");
 	Commit_WriteCommitFile(c, commitSha);
 
 	/*update the branch commit file*/
@@ -562,12 +530,12 @@ int cmd_info(int argc, char *argv[])
 {
 	ShaBuffer sha;
 	Commit c = Commit_Create();
-	bool flag = false;
+	bool flag = false, recursive;
 
 	if(argc >= 3)
 	{
 		int o;
-		while((o = getopt(argc, argv, "hc:")) != -1)
+		while((o = getopt(argc, argv, "hrc:")) != -1)
 		{
 			switch(o)
 			{
@@ -576,8 +544,11 @@ int cmd_info(int argc, char *argv[])
 					flag = true;
 					break;
 				case 'h':
-					LOG_INFO("usage %s %s [-c <commitSha>]\n Default prints the current commit information", argv[0], argv[1]);
+					LOG_INFO("usage %s %s [-c <commitSha>] [-r \"print all the commits recursively\"]\n Default prints the current commit information", argv[0], argv[1]);
 					goto EXIT;
+				case 'r':
+					recursive = true;
+					break;
 				default:
 					LOG_ERROR("usage %s %s [-c <commitSha>]", argv[0], argv[1]);
 					goto EXIT;
@@ -595,11 +566,11 @@ int cmd_info(int argc, char *argv[])
 			LOG_INFO("commit not set, new repo!!!");
 			goto EXIT;
 		}
-		LOG_INFO("Commit : %s", sha);
 	}
 
-
+	LOG_INFO(" ");
 	if(true == flag)
+	do
 	{
 		struct tm *t;
 		char buffer[64];
@@ -607,15 +578,18 @@ int cmd_info(int argc, char *argv[])
 		t = localtime(&c->rawtime);
 		strftime(buffer, 64, "%c", t);
 
+		LOG_INFO("Commit : %s", sha);
 		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
+		/*print the second parent if it exist*/
 		if(0 != strlen((char*)c->parent1))
-		LOG_INFO("Parent1: %s", c->parent1);
+			LOG_INFO("Parent1: %s", c->parent1);
 		LOG_INFO("Date   : %s", buffer);
 		LOG_INFO("Author : %s", s_getstr(c->author));
 		LOG_INFO("\n   %s", s_getstr(c->message));
 		LOG_INFO(" ");
 	}
+	while((true == recursive) && (strlen((char*)c->parent0) == SHA_HASH_LENGTH) && (true == Commit_ReadCommitFile(c, c->parent0)));
 EXIT:
 	Commit_Delete(c);
 	return 0;
@@ -686,7 +660,7 @@ int cmd_checkout(int argc, char *argv[])
 	}
 	filename = String_Create();
 	indextree = FileList_Create();
-	if((false == getCurrentIndexFile(filename)) || (false == FileList_DeSerialize(indextree, s_getstr(filename))))
+	if(false == readIndexFile(indextree, NULL))
 		goto EXIT;
 	for(i = 2; i < argc; i++)
 	{

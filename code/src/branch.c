@@ -214,7 +214,7 @@ int cmd_branch(int argc, char *argv[])
 	if(argc >= 3)
 	{
 		int o;
-		while((o = getopt(argc, argv, "c:s:")) != -1)
+		while((o = getopt(argc, argv, "hc:s:")) != -1)
 		{
 			switch(o)
 			{
@@ -226,8 +226,9 @@ int cmd_branch(int argc, char *argv[])
 					String_strcpy(branchName, optarg);
 					setBranch = true;
 					break;
+				case 'h':
 				default:
-					LOG_ERROR("usage %s %s [-c <create branch>] [-s <set branch>]", argv[0], argv[1]);
+					LOG_ERROR("usage %s %s [-c <create branch>] [-s <set branch>]\nWhen run with no arguments prints all the branchs", argv[0], argv[1]);
 					goto EXIT;
 			}
 		}
