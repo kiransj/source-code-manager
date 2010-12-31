@@ -137,14 +137,18 @@ int cmd_status(int argc, char *argv[])
 		c = Commit_Create();
 		if(false == getCurrentCommit(c, sha))
 		{
-			Commit_Delete(c);
-			goto EXIT;
+			FileList_ResetList(f);
+			FileList_InsertFile(f, ".", false);
+			LOG_INFO("commit not set. new repo?");
 		}
-		String_format(s, "%s/%s", SCM_TREE_FOLDER, c->tree);
-		if(false == FileList_DeSerialize(f,s_getstr(s)))
-		{
-			Commit_Delete(c);
-			goto EXIT;
+		else 
+		{	
+			String_format(s, "%s/%s", SCM_TREE_FOLDER, c->tree);
+			if(false == FileList_DeSerialize(f,s_getstr(s)))
+			{
+				Commit_Delete(c);
+				goto EXIT;
+			}
 		}
 		Commit_Delete(c);
 	}
