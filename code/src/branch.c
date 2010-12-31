@@ -171,31 +171,35 @@ bool setWorkingAreaToBranch(String branch)
 	nextList = FileList_Create();
 	temp = String_Create();
 
+	/*check is the branch exist*/
 	String_format(temp, "%s/%s", SCM_BRANCH_FOLDER, s_getstr(branch));
-
 	if(false == isItFolder(s_getstr(temp)))
 	{
 		LOG_INFO("branch '%s' doesn't exist", s_getstr(branch));
 		goto EXIT;
 	}
-
+	/*if the working area differes from index, then backout from branching*/
 	if(true == compareIndexWithWorkingArea())
 	{
 		LOG_ERROR("working changes not reflected in index, add them to index and try again");
 		goto EXIT;
 	}
-	if(!((true == getCurrentIndexFile(temp)) && (true == FileList_DeSerialize(currentList,s_getstr(temp)))))
+	if(false == readIndexFile(currentList, NULL))
 	{
 		goto EXIT;
 	}
 	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branch), SCM_INDEX_FILENAME);
 	if(false == FileList_DeSerialize(nextList, s_getstr(temp)))
 		goto EXIT;
+	/* Now copy all the file of this branch to work area. The copy is done in 
+	 * difference() function. We first analyse what has modified in these 2 branch
+	 * and just restore the changes.*/
 	if(false == FileList_GetDifference(currentList,nextList,difference, branch))
 	{
 		goto EXIT;
 	}
 	setBranchName(branch);
+	returnValue = true;
 EXIT:
 	FileList_Delete(nextList);
 	FileList_Delete(currentList);
@@ -249,7 +253,8 @@ int cmd_branch(int argc, char *argv[])
 	}
 	if(true == setBranch)
 	{
-		setWorkingAreaToBranch(branchName);
+		if(true == setWorkingAreaToBranch(branchName))
+			LOG_INFO("Switch to branch '%s'", s_getstr(branchName));
 	}
 EXIT:
 	String_Delete(s);
