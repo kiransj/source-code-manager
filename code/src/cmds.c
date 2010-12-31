@@ -90,18 +90,68 @@ int cmd_status(int argc, char *argv[])
 	int returnValue = 1;
 	FileList f, f1;
 	String s;
+	bool comparetree = false;
 	s = String_Create();
 	f = FileList_Create();
 	f1 = FileList_Create();
 
-	if(false == getCurrentIndexFile(s))
-		goto EXIT;
+	if(argc >= 3)
+	{
+		int c;
+		while((c = getopt(argc, argv, "t")) != -1)
+		{
+			switch(c)
+			{
+				case 't':
+					comparetree = true;
+					break;
 
-	if(false == FileList_DeSerialize(f, s_getstr(s)))
-		goto EXIT;
+				case 'h':
+					LOG_INFO("usage %s %s [-t \"compare index with tree\"]\n default is to compare index with working area", argv[0], argv[1]);
+					returnValue = 0;
+					goto EXIT;
+				default:
+					LOG_INFO("usage %s %s [-t \"compare index with tree\"]\n default is to compare index with working area", argv[0], argv[1]);
+					goto EXIT;
+			}
+		}
+	}
 
-	FileList_GetDirectoryConents(f1, "./", true, false);
-	FileList_InsertFile(f1, ".", false);
+	if(false == comparetree)
+	{
+		if(false == readIndexFile(f, NULL))
+		{
+			goto EXIT;
+		}
+		FileList_GetDirectoryConents(f1, "./", true, false);
+		FileList_InsertFile(f1, ".", false);
+	}
+	else
+	{
+		Commit c;
+		ShaBuffer sha;
+		if(false == readIndexFile(f1, NULL))
+		{
+			goto EXIT;
+		}
+		c = Commit_Create();
+		if(false == getCurrentCommit(c, sha))
+		{
+			FileList_ResetList(f);
+			FileList_InsertFile(f, ".", false);
+			LOG_INFO("commit not set. new repo?");
+		}
+		else 
+		{	
+			String_format(s, "%s/%s", SCM_TREE_FOLDER, c->tree);
+			if(false == FileList_DeSerialize(f,s_getstr(s)))
+			{
+				Commit_Delete(c);
+				goto EXIT;
+			}
+		}
+		Commit_Delete(c);
+	}
 	FileList_GetDifference(f, f1, differences, NULL);
 	returnValue = 0;
 EXIT:
