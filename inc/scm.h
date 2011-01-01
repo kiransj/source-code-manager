@@ -13,6 +13,7 @@
 #define SCM_BLOB_FOLDER		".scm/obj/blob"
 #define SCM_COMMIT_FOLDER	".scm/obj/commit"
 #define SCM_TREE_FOLDER		".scm/obj/tree"
+#define SCM_TEMP_FOLDER		".scm/tmp"
 
 #define SCM_BRANCH_CACHE_FOLDER	"cache"
 

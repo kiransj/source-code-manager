@@ -86,6 +86,20 @@ bool readIndexFile(FileList index, String indexfile)
 	String_Delete(filename);
 	return flag;
 }
+
+bool readTree(FileList tree, ShaBuffer treeSha)
+{
+	bool returnValue = false;
+	String filename = String_Create(), temp = String_Create();
+	String_format(filename, "%s/%s", SCM_TREE_FOLDER, treeSha);
+	String_format(temp, "%s/%s", SCM_TEMP_FOLDER, treeSha);
+	decompressAndSave(s_getstr(filename),s_getstr(temp), SCM_OBJECT_FILE_PERMISSION);
+	returnValue = FileList_DeSerialize(tree,s_getstr(temp));
+	unlink(s_getstr(temp));
+	String_Delete(filename);
+	String_Delete(temp);
+	return returnValue;
+}
 bool getCurrentCommitFile(String s)
 {
 	bool returnValue = false;
@@ -207,7 +221,7 @@ bool copyTreeToRepo(File f)
 	/*Check if this file already exist in the repo*/
 	if(false == isItFile(s_getstr(s)))
 	{
-		returnValue = copyFile(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
+		returnValue = compressAndSave(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
 	}
 	String_Delete(s);
 	return returnValue;
@@ -223,7 +237,7 @@ bool copyTreeFromRepo(ShaBuffer tree, const char *dest, int mode)
 	/*Check if this file already exist in the repo*/
 	if(true == isItFile(s_getstr(s)))
 	{
-		returnValue = copyFile(s_getstr(s), dest, mode);
+		returnValue = decompressAndSave(s_getstr(s), dest, mode);
 		returnValue = true;
 	}
 	else 

@@ -69,7 +69,8 @@ int cmd_init(int argc, char *argv[])
 						SCM_OBJECTS_FOLDER,
 						SCM_BLOB_FOLDER,
 						SCM_COMMIT_FOLDER,
-						SCM_TREE_FOLDER};
+						SCM_TREE_FOLDER,
+						SCM_TEMP_FOLDER};
 	const int size = sizeof(folders)/sizeof(folders[0]);
 
 	if(true == isItFolder(".scm"))
