@@ -142,9 +142,8 @@ int cmd_status(int argc, char *argv[])
 			LOG_INFO("commit not set. new repo?");
 		}
 		else 
-		{	
-			String_format(s, "%s/%s", SCM_TREE_FOLDER, c->tree);
-			if(false == FileList_DeSerialize(f,s_getstr(s)))
+		{
+			if(false == readTree(f, c->tree))
 			{
 				Commit_Delete(c);
 				goto EXIT;
@@ -207,8 +206,8 @@ bool addFileIfNecessary(FileList indexlist, const String filename)
 	{
 		uint32_t len;
 		char *str;
-
-		LOG_INFO("Adding %s", s_getstr(filename));
+		
+		LOG_INFO("adding file : %s", s_getstr(filename));
 		/*this is a new file, add it to the list and update the index and copy it to cache*/
 		FileList_InsertFile(indexlist,s_getstr(filename),true);
 		FileList_Find(indexlist, s_getstr(filename), &pos);
@@ -243,13 +242,12 @@ int cmd_add(int argc, char *argv[])
 		LOG_ERROR("usage %s %s <filename | foldername>", argv[0], argv[1]);
 	}
 
-	if(false == getCurrentIndexFile(indexfile))
+	if(false == readIndexFile(indexlist, indexfile))
 	{
 		returnValue = 1;
 		goto EXIT;
 	}
 
-	FileList_DeSerialize(indexlist, s_getstr(indexfile));
 	for(i = 2; i < argc; i++)
 	{
 	
@@ -527,8 +525,7 @@ int cmd_commit(int argc, char *argv[])
 	else
 	{
 		Commit_SetParent(c, prevCommit, dummy);
-		String_format(s, "%s/%s", SCM_TREE_FOLDER, prev->tree);
-		if(false == FileList_DeSerialize(parentTree, s_getstr(s)))
+		if(false ==readTree(parentTree, prev->tree))
 		{
 			LOG_INFO("failed to read the parent tree");
 			goto EXIT;
@@ -638,6 +635,8 @@ int cmd_info(int argc, char *argv[])
 		LOG_INFO("Author : %s", s_getstr(c->author));
 		LOG_INFO("\n   %s", s_getstr(c->message));
 		LOG_INFO(" ");
+		/*copy the parent sha...*/
+		strcpy((char*)sha, (char*)c->parent0);
 	}
 	while((true == recursive) && (strlen((char*)c->parent0) == SHA_HASH_LENGTH) && (true == Commit_ReadCommitFile(c, c->parent0)));
 EXIT:

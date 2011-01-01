@@ -21,13 +21,14 @@ bool printAllBranches(void)
 	FileList f;
 	bool returnValue = false;
 
+	f = FileList_Create();
 	branch = String_Create();
 	if(getBranchName(branch) == false)
 	{
 		LOG_ERROR("current branch not set!!");
 		goto EXIT;
 	}
-	f = FileList_Create();
+
 	FileList_GetDirectoryConents(f, SCM_BRANCH_FOLDER,false,false);
 	list = FileList_GetListDetails(f,&num);
 

@@ -7,6 +7,7 @@ bool setBranchName(String const s);
 
 bool getCurrentIndexFile(String s);
 bool readIndexFile(FileList index, String indexfile);
+bool readTree(FileList tree, ShaBuffer treeSha);
 
 bool copyFileToCache(File f);
 bool moveFileFromCacheToRepo(File f);
