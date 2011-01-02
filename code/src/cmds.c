@@ -378,12 +378,15 @@ EXIT:
 int cmd_ls(int argc, char *argv[])
 {
 	int returnValue = 0;
-	bool recursive = false, longlist = false;
+	ShaBuffer treeSha;
+	bool recursive = false, longlist = false, printtree = false;
 	FileList f = FileList_Create();
+
+	sha_reset(treeSha);
 	if(argc >= 3)
 	{
 		int c;
-		while((c = getopt(argc, argv, "rhl")) != -1)
+		while((c = getopt(argc, argv, "rhlt:")) != -1)
 		{
 			switch(c)
 			{
@@ -393,22 +396,26 @@ int cmd_ls(int argc, char *argv[])
 				case 'l':
 					longlist = true;
 					break;
+				case 't':
+					strcpy((char*)treeSha, (char*)optarg);
+					printtree = false;
+					break;
 				case 'h':
-					LOG_INFO("usage %s %s [-l \"long list\"] [-r \"recursive\"]", argv[0], argv[1]);
+					LOG_INFO("usage %s %s [-l \"long list\"] [-r \"recursive\"] [-t <sha> \"sha of the tree to be printed\"]", argv[0], argv[1]);
 					returnValue = 0;
 					goto EXIT;
 				default:
-					LOG_ERROR("usage %s %s -l \"long list\" -r \"recursive\"", argv[0], argv[1]);
+					LOG_ERROR("usage %s %s [-l \"long list\"] [-r \"recursive\"] [-t <sha> \"sha of the tree to be printed\"]", argv[0], argv[1]);
 					returnValue = 1;
-					LOG_ERROR("usage %s %s -l \"long list\" -r \"recursive\"", argv[0], argv[1]);
-					returnValue = 1;
-					goto EXIT;
 					goto EXIT;
 			}
 		}
 	}
-
-	if(true == readIndexFile(f, NULL))
+	if(true == printtree)
+		returnValue = readTree(f,treeSha);
+	else
+		returnValue = readIndexFile(f, NULL);
+	if(true == returnValue)
 		FileList_PrintList(f, recursive, longlist);
 EXIT:
 	FileList_Delete(f);

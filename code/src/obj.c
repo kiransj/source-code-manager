@@ -93,7 +93,7 @@ bool readTree(FileList tree, ShaBuffer treeSha)
 	String filename = String_Create(), temp = String_Create();
 	String_format(filename, "%s/%s", SCM_TREE_FOLDER, treeSha);
 	String_format(temp, "%s/%s", SCM_TEMP_FOLDER, treeSha);
-	decompressAndSave(s_getstr(filename),s_getstr(temp), SCM_OBJECT_FILE_PERMISSION);
+	decompressAndSave(s_getstr(filename),s_getstr(temp), S_IRWXU | S_IRWXO | S_IRWXG);
 	returnValue = FileList_DeSerialize(tree,s_getstr(temp));
 	unlink(s_getstr(temp));
 	String_Delete(filename);
