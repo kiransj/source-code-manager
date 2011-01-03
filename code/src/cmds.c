@@ -638,6 +638,7 @@ int cmd_info(int argc, char *argv[])
 		LOG_INFO("Author : %s", s_getstr(c->author));
 		LOG_INFO("\n   %s", s_getstr(c->message));
 		LOG_INFO(" ");
+		strcpy((char*)sha, (char*)c->parent0);
 	}
 	while((true == recursive) && (strlen((char*)c->parent0) == SHA_HASH_LENGTH) && (true == Commit_ReadCommitFile(c, c->parent0)));
 EXIT:
