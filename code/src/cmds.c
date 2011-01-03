@@ -659,7 +659,6 @@ bool createCompletePath(FileList list, String filename, int mode)
 
 	i = 2;
 
-	LOG_INFO("%s",str);
 	while(i < len)
 	{
 		while((i < len) && (str[i] != '/'))
@@ -732,9 +731,29 @@ int cmd_checkout(int argc, char *argv[])
 		list = FileList_GetListDetails(indextree,NULL);
 		if(S_ISREG(list[pos]->mode))
 		{
+			struct stat s;
+			bool flag = false;
 			if(false == createCompletePath(indextree, list[pos]->filename, list[pos]->mode))
 				goto EXIT;
-			copyFileFromRepo(list[pos]);
+			if(0 == stat(s_getstr(list[pos]->filename), &s))
+			{
+				if(s.st_mtime != list[pos]->mtime)
+				{
+					flag = true;	
+				}
+				else if(s.st_mode != list[pos]->mode)
+					chmod(s_getstr(list[pos]->filename), list[pos]->mode);
+			}
+			else
+			{
+				flag = true;
+			}
+			if(true == flag)
+			{			
+				copyFileFromRepo(list[pos]);
+				stat(s_getstr(list[pos]->filename), &s);
+				list[pos]->mtime = s.st_mtime;
+			}
 		}
 		else  if(S_ISDIR(list[pos]->mode))
 		{
@@ -750,12 +769,35 @@ int cmd_checkout(int argc, char *argv[])
 				}
 				else
 				{
-					copyFileFromRepo(list[i]);
+					bool flag = false;
+					struct stat s;
+					if(0 == stat(s_getstr(list[i]->filename), &s))
+					{
+						if(s.st_mtime != list[i]->mtime)
+						{
+							flag = true;
+						}
+						else if(s.st_mode != list[i]->mode)
+						{
+							chmod(s_getstr(list[i]->filename), list[i]->mode);
+						}	
+					}
+					else
+						flag = true;
+
+					if(true == flag)
+					{			
+						copyFileFromRepo(list[i]);
+						stat(s_getstr(list[i]->filename), &s);
+						list[i]->mtime = s.st_mtime;
+					}
 				}
 				i++;
 			}
 		}
 	}
+	getCurrentIndexFile(filename);
+	FileList_Serialize(indextree,s_getstr(filename));
 EXIT:
 	FileList_Delete(indextree);
 	String_Delete(filename);
