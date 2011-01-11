@@ -126,7 +126,7 @@ bool compressAndSave(const char *sourceFile, const char *destFile, int mode)
     strm.zalloc = NULL;
     strm.zfree = NULL;
     strm.opaque = NULL;
-    ret = deflateInit(&strm, Z_BEST_COMPRESSION);
+    ret = deflateInit(&strm, Z_BEST_SPEED);
     if (ret != Z_OK)
         return ret;
 
