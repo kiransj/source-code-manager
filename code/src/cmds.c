@@ -141,7 +141,7 @@ int cmd_status(int argc, char *argv[])
 			FileList_InsertFile(f, ".", false);
 			LOG_INFO("commit not set. new repo?");
 		}
-		else 
+		else
 		{
 			if(false == readTree(f, c->tree))
 			{
@@ -206,7 +206,7 @@ bool addFileIfNecessary(FileList indexlist, const String filename)
 	{
 		uint32_t len;
 		char *str;
-		
+
 		LOG_INFO("adding file : %s", s_getstr(filename));
 		/*this is a new file, add it to the list and update the index and copy it to cache*/
 		FileList_InsertFile(indexlist,s_getstr(filename),true);
@@ -250,7 +250,7 @@ int cmd_add(int argc, char *argv[])
 
 	for(i = 2; i < argc; i++)
 	{
-	
+
 		String_strcpy(filename, argv[i]);
 		String_NormalizeFolderName(filename);
 		if(isItFile(argv[i]))
@@ -266,7 +266,7 @@ int cmd_add(int argc, char *argv[])
 			char *str;
 			uint32_t num = 0, j, len;
 			f1 = FileList_Create();
-				
+
 			FileList_InsertFile(indexlist, s_getstr(filename), false);
 
 			FileList_GetDirectoryConents(f1, s_getstr(filename), true /*recursive*/, false /*computeSha*/);
@@ -542,7 +542,7 @@ int cmd_commit(int argc, char *argv[])
 	 * index with the parentTree*/
 	readIndexFile(indexTree, s);
 
-	/* Copy the modified files from cache to repo. This is done in 
+	/* Copy the modified files from cache to repo. This is done in
 	 * function differences_commit() */
 	d.copyFile = true;
 	FileList_GetDifference(parentTree, indexTree, differences_commit, &d);
@@ -630,8 +630,8 @@ int cmd_info(int argc, char *argv[])
 		char buffer[64];
 
 		t = localtime(&c->rawtime);
-		strftime(buffer, 64, "%c", t);
-
+		strftime(buffer, 64, "%c %z", t);
+		
 		LOG_INFO("Commit : %s", sha);
 		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);
@@ -659,7 +659,6 @@ bool createCompletePath(FileList list, String filename, int mode)
 
 	i = 2;
 
-	LOG_INFO("%s",str);
 	while(i < len)
 	{
 		while((i < len) && (str[i] != '/'))
@@ -732,9 +731,29 @@ int cmd_checkout(int argc, char *argv[])
 		list = FileList_GetListDetails(indextree,NULL);
 		if(S_ISREG(list[pos]->mode))
 		{
+			struct stat s;
+			bool flag = false;
 			if(false == createCompletePath(indextree, list[pos]->filename, list[pos]->mode))
 				goto EXIT;
-			copyFileFromRepo(list[pos]);
+			if(0 == stat(s_getstr(list[pos]->filename), &s))
+			{
+				if(s.st_mtime != list[pos]->mtime)
+				{
+					flag = true;
+				}
+				else if(s.st_mode != list[pos]->mode)
+					chmod(s_getstr(list[pos]->filename), list[pos]->mode);
+			}
+			else
+			{
+				flag = true;
+			}
+			if(true == flag)
+			{
+				copyFileFromRepo(list[pos]);
+				stat(s_getstr(list[pos]->filename), &s);
+				list[pos]->mtime = s.st_mtime;
+			}
 		}
 		else  if(S_ISDIR(list[pos]->mode))
 		{
@@ -750,12 +769,35 @@ int cmd_checkout(int argc, char *argv[])
 				}
 				else
 				{
-					copyFileFromRepo(list[i]);
+					bool flag = false;
+					struct stat s;
+					if(0 == stat(s_getstr(list[i]->filename), &s))
+					{
+						if(s.st_mtime != list[i]->mtime)
+						{
+							flag = true;
+						}
+						else if(s.st_mode != list[i]->mode)
+						{
+							chmod(s_getstr(list[i]->filename), list[i]->mode);
+						}
+					}
+					else
+						flag = true;
+
+					if(true == flag)
+					{
+						copyFileFromRepo(list[i]);
+						stat(s_getstr(list[i]->filename), &s);
+						list[i]->mtime = s.st_mtime;
+					}
 				}
 				i++;
 			}
 		}
 	}
+	getCurrentIndexFile(filename);
+	FileList_Serialize(indextree,s_getstr(filename));
 EXIT:
 	FileList_Delete(indextree);
 	String_Delete(filename);

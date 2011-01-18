@@ -1,15 +1,15 @@
 CC=gcc
-INCLUDE_DIR =inc 
+INCLUDE_DIR =inc
 CC_FLAG=-Wall -g
 SRC=code/src code/util .
-OBJ_FLAGS=-Wall -c 
+OBJ_FLAGS=-Wall -c
 LDFLAGS +=-lz
 EXECUTABLES=a.out
-SOURCES=$(foreach DIR, $(SRC),$(wildcard $(DIR)/*.c)) 
+SOURCES=$(foreach DIR, $(SRC),$(wildcard $(DIR)/*.c))
 INCLUDE += $(foreach includedir, $(INCLUDE_DIR),-I $(includedir))
 INCLUDE_FILES += $(foreach includedir, $(INCLUDE_DIR),$(includedir)/*.h)
 OBJS_FOLDER=.objs
-OBJECTS := $(addprefix ${OBJS_FOLDER}/,$(SOURCES:.c=.o)) 
+OBJECTS := $(addprefix ${OBJS_FOLDER}/,$(SOURCES:.c=.o))
 
 all: ${EXECUTABLES}
 

@@ -50,7 +50,7 @@ bool setBranchName(String const s)
 		LOG_ERROR("fatal: setBranchName(): unable to open HEAD file");
 		goto EXIT;
 	}
-	fprintf(fp, "branch: %s\n", s_getstr(s)); 
+	fprintf(fp, "branch: %s\n", s_getstr(s));
 	returnValue = true;
 	fclose(fp);
 EXIT:
@@ -202,7 +202,7 @@ bool copyFileToCache(File f)
 			if(false == isItFile(s_getstr(s)))
 				returnValue = compressAndSave(s_getstr(f->filename), s_getstr(s), SCM_OBJECT_FILE_PERMISSION);
 		}
-EXIT:	
+EXIT:
 		String_Delete(s);
 		String_Delete(branchName);
 	}
@@ -240,7 +240,7 @@ bool copyTreeFromRepo(ShaBuffer tree, const char *dest, int mode)
 		returnValue = decompressAndSave(s_getstr(s), dest, mode);
 		returnValue = true;
 	}
-	else 
+	else
 	{
 		LOG_ERROR("FATAL: tree '%s' not found", tree);
 	}
@@ -266,7 +266,7 @@ bool moveFileFromCacheToRepo(File f)
 		branchName = String_Create();
 
 		if(false == getBranchName(branchName))
-		{	
+		{
 			goto EXIT;
 		}
 		String_format(s1, "%s/%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER, f->sha);

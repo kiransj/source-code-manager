@@ -59,7 +59,7 @@ bool Commit_SetTree(Commit c, const ShaBuffer tree)
 	{
 		LOG_ERROR("Commit_SetTree() Sha length %d != %d", len, SHA_HASH_LENGTH);
 		return false;
-	}	
+	}
 	memcpy(c->tree, tree, SHA_HASH_LENGTH);
 	return true;
 }
@@ -193,7 +193,7 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 	temp = ntohl(temp);
 	String_SetSize(c->author,temp+10);
 	dummy = read(fd, (void*)s_getstr(c->author), temp);
-	
+
 	/*read the message*/
 	dummy = read(fd, &temp, INT_SIZE);
 	temp = ntohl(temp);
@@ -202,7 +202,7 @@ bool Commit_ReadCommitFile(Commit c, const ShaBuffer commitSha)
 
 	returnValue = true;
 	close(fd);
-EXIT:	
+EXIT:
 	String_Delete(s);
 	return returnValue;
 }

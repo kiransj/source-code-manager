@@ -17,7 +17,7 @@ void* XMALLOC(size_t size)
 	void *ptr;
 	if(MIN_MEMORY_TO_ALLOCATE > size)
 		size = MIN_MEMORY_TO_ALLOCATE;
-	numOfBytesAllocated += size;		
+	numOfBytesAllocated += size;
 	ptr = malloc(size);
 	if(NULL == ptr)
 	{
@@ -28,7 +28,7 @@ void* XMALLOC(size_t size)
 }
 
 void PrintAllocatedBytes(void)
-{	
+{
 	LOG_INFO("numOfBytesAllocated :%d", numOfBytesAllocated);
 	return;
 }
@@ -126,7 +126,7 @@ bool compressAndSave(const char *sourceFile, const char *destFile, int mode)
     strm.zalloc = NULL;
     strm.zfree = NULL;
     strm.opaque = NULL;
-    ret = deflateInit(&strm, Z_BEST_COMPRESSION);
+    ret = deflateInit(&strm, Z_BEST_SPEED);
     if (ret != Z_OK)
         return ret;
 
@@ -178,7 +178,7 @@ bool decompressAndSave(const char *sourceFile, const char *destFile, int mode)
     z_stream strm;
     unsigned char in[CHUNK];
     unsigned char out[CHUNK];
-	FILE *source, *dest; 
+	FILE *source, *dest;
 	source = fopen(sourceFile, "r");
 	if(NULL == source)
 	{

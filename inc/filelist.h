@@ -51,7 +51,7 @@ inline uint32_t FileList_GetListLength(FileList f);
 inline bool FileList_Find(FileList f, const char *filename, uint32_t * const pos);
 File* FileList_GetListDetails(const FileList f, uint32_t * const listLength);
 bool FileList_InsertFile(FileList f, const char* filename, const bool computeSha);
-bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive); 
+bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive);
 bool FileList_MergeList(FileList masterList, const FileList newList);
 bool FileList_GetDifference(const FileList reference, const FileList list, fn_difference function, void *data);
 

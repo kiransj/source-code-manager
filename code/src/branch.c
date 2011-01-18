@@ -70,14 +70,14 @@ bool createNewBranch(String branchName)
 		LOG_ERROR("fatal: mkdir('%s') failed(%d)", s_getstr(temp), errno);
 		goto EXIT;
 	}
-	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER);	
+	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_BRANCH_CACHE_FOLDER);
 	if(0 != mkdir(s_getstr(temp), SCM_FOLDER_PERMISSION))
 	{
 		LOG_ERROR("fatal: mkdir('%s') failed(%d)", s_getstr(temp), errno);
 		goto EXIT;
 	}
 
-	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_INDEX_FILENAME);	
+	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branchName), SCM_INDEX_FILENAME);
 	copyTreeFromRepo(currentCommit->tree, s_getstr(temp), SCM_HEAD_FILE_PERMISSION);
 
 
@@ -126,9 +126,9 @@ int difference(File ref, File n,DifferenceType type, void *data)
 		case FILE_DELETED:
 				if(isItFile(s_getstr(ref->filename)))
 					unlink(s_getstr(ref->filename));
-				else 
+				else
 				{
-					String_format(temp, "rm -rf %s", s_getstr(ref->filename));	
+					String_format(temp, "rm -rf %s", s_getstr(ref->filename));
 					system(s_getstr(temp));
 					String_Delete(temp);
 					return 0; //skip this folder
@@ -155,7 +155,7 @@ int difference(File ref, File n,DifferenceType type, void *data)
 				}
 				break;
 		case FILE_LAST_VALUE:
-		default:	
+		default:
 				break;
 	}
 
@@ -192,7 +192,7 @@ bool setWorkingAreaToBranch(String branch)
 	String_format(temp, "%s/%s/%s", SCM_BRANCH_FOLDER, s_getstr(branch), SCM_INDEX_FILENAME);
 	if(false == FileList_DeSerialize(nextList, s_getstr(temp)))
 		goto EXIT;
-	/* Now copy all the file of this branch to work area. The copy is done in 
+	/* Now copy all the file of this branch to work area. The copy is done in
 	 * difference() function. We first analyse what has modified in these 2 branch
 	 * and just restore the changes.*/
 	if(false == FileList_GetDifference(currentList,nextList,difference, branch))
