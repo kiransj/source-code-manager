@@ -642,6 +642,7 @@ int cmd_info(int argc, char *argv[])
 		LOG_INFO("Author : %s", s_getstr(c->author));
 		LOG_INFO("\n   %s", s_getstr(c->message));
 		LOG_INFO(" ");
+
 		/*copy the parent sha...*/
 		strcpy((char*)sha, (char*)c->parent0);
 	}
