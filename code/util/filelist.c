@@ -79,8 +79,8 @@ static void SetListSize(FileList f, const uint32_t size)
 
 	return;
 }
-/*This function returns true if the file is already present in the list and sets pos 
- * value to the pos of the file. If the file is not present then it returns false and 
+/*This function returns true if the file is already present in the list and sets pos
+ * value to the pos of the file. If the file is not present then it returns false and
  * set the pos value to the position where this file has to be inserted*/
 static bool getPositionToInsert(const FileList f, const char *filename, uint32_t * const pos)
 {
@@ -124,12 +124,12 @@ File* FileList_GetListDetails(const FileList f, uint32_t * const listLength)
 	return f->list;
 }
 
-bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive) 
+bool FileList_RemoveFile(FileList f, const char *filename, const bool recursive)
 {
 	bool returnValue = false;
 	uint32_t pos = 0;
 	if(true == FileList_Find(f, filename, &pos))
-	{	
+	{
 		if(S_ISDIR(f->list[pos]->mode))
 		{
 			if(recursive)
@@ -272,9 +272,9 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 	if(NULL != dir)
 	{
 		while(NULL != (d = readdir(dir)))
-		{		
+		{
 			if(false == excludeFile(d->d_name))
-			{			
+			{
 				String_format(filename, "%s/%s", s_getstr(path), d->d_name);
 				FileList_InsertFile(f, s_getstr(filename), computeSha);
 			}
@@ -282,7 +282,7 @@ static bool GetDirectoryConents(FileList f, const char *folder, const bool compu
 	}
 	else
 	{
-		LOG_ERROR("GetDirectoryConents: unable to open directory '%s'", folder);	
+		LOG_ERROR("GetDirectoryConents: unable to open directory '%s'", folder);
 		returnValue = false;
 	}
 	String_Delete(path);
@@ -300,11 +300,11 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 	}
 	if(false == recursive)
 	{
-		GetDirectoryConents(f, folder, computeSha);		
+		GetDirectoryConents(f, folder, computeSha);
 	}
 	else
 	{
-		FileList l;		
+		FileList l;
 		String *stack;
 		int size = 20, top = 0, i;
 
@@ -329,7 +329,7 @@ bool FileList_GetDirectoryConents(FileList f, const char *folder, const bool rec
 			{
 				if(!S_ISDIR(l->list[i]->mode))
 					continue;
-				
+
 				/*if it a folder then add it to the stack*/
 				String_clone(stack[top++], l->list[i]->filename); /*PUSH operation*/
 				/*Allocate some more memory if necessary*/
@@ -387,7 +387,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			{
 				int i = refpos++;
 				String_strcat(reference->list[i]->filename, "/");
-				while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename), 
+				while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename),
 							String_strlen(reference->list[i]->filename)))
 					refpos++;
 			}
@@ -407,7 +407,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			{
 				int i = pos++;
 				String_strcat(newlist->list[i]->filename, "/");
-				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), 
+				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename),
 							String_strlen(newlist->list[i]->filename)))
 					pos++;
 			}
@@ -423,12 +423,12 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 	while(pos < newlist->length)
 	{
 		ret = function(NULL, newlist->list[pos], FILE_NEW, data);
-		
+
 		if((1 != ret) && S_ISDIR(newlist->list[pos]->mode))
 		{
 			int i = pos++;
 			String_strcat(newlist->list[i]->filename, "/");
-			while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename), 
+			while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename),
 							  String_strlen(newlist->list[i]->filename)))
 				pos++;
 		}
@@ -445,7 +445,7 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		{
 			int i = refpos++;
 			String_strcat(reference->list[i]->filename, "/");
-			while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename), 
+			while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename),
 						String_strlen(reference->list[i]->filename)))
 				refpos++;
 		}
@@ -563,11 +563,11 @@ void FileList_PrintList(const FileList f, const bool recursive, const bool longl
 	for(i = 1; i < f->length; i++)
 	{
 		if(longlist)
-		{		
+		{
 			LOG_INFO("%7o %40s %s", f->list[i]->mode, f->list[i]->sha, s_getstr(f->list[i]->filename));
 		}
 		else
-		{			
+		{
 			LOG_INFO("%s%c", s_getstr(f->list[i]->filename), S_ISDIR(f->list[i]->mode) ? '/' : ' ');
 		}
 		if(S_ISDIR(f->list[i]->mode) && !recursive)

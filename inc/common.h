@@ -2,7 +2,7 @@
 #define COMMON_H
 #include <stdio.h>
 #include <errno.h>
-typedef enum 
+typedef enum
 {
 	false = 0,
 	true = 1,
