@@ -630,8 +630,8 @@ int cmd_info(int argc, char *argv[])
 		char buffer[64];
 
 		t = localtime(&c->rawtime);
-		strftime(buffer, 64, "%c", t);
-
+		strftime(buffer, 64, "%c %z", t);
+		
 		LOG_INFO("Commit : %s", sha);
 		LOG_INFO("Tree   : %s", c->tree);
 		LOG_INFO("Parent : %s", c->parent0);

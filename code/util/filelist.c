@@ -386,7 +386,6 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			if((1 != ret) && S_ISDIR(reference->list[refpos]->mode))
 			{
 				int i = refpos++;
-				String_strcat(reference->list[i]->filename, "/");
 				while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename),
 							String_strlen(reference->list[i]->filename)))
 					refpos++;
@@ -406,7 +405,6 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 			if((1 != ret) && S_ISDIR(newlist->list[pos]->mode))
 			{
 				int i = pos++;
-				String_strcat(newlist->list[i]->filename, "/");
 				while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename),
 							String_strlen(newlist->list[i]->filename)))
 					pos++;
@@ -427,7 +425,6 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		if((1 != ret) && S_ISDIR(newlist->list[pos]->mode))
 		{
 			int i = pos++;
-			String_strcat(newlist->list[i]->filename, "/");
 			while(0 == strncmp(s_getstr(newlist->list[i]->filename), s_getstr(newlist->list[pos]->filename),
 							  String_strlen(newlist->list[i]->filename)))
 				pos++;
@@ -444,7 +441,6 @@ bool FileList_GetDifference(const FileList reference, const FileList newlist, fn
 		if((1 != ret) && S_ISDIR(reference->list[refpos]->mode))
 		{
 			int i = refpos++;
-			String_strcat(reference->list[i]->filename, "/");
 			while(0 == strncmp(s_getstr(reference->list[i]->filename), s_getstr(reference->list[refpos]->filename),
 						String_strlen(reference->list[i]->filename)))
 				refpos++;
